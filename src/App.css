@@ -1180,6 +1180,11 @@ body {
 .match-row.win .match-line::after { content: ''; }
 .match-row.lose .match-line { color: var(--slate-500); }
 
+.match-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .match-date {
   font-size: 0.75rem;
   color: var(--slate-500);

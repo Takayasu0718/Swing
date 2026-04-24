@@ -18,7 +18,7 @@ export default function TeamScreen() {
   const { openProfile } = useProfile()
   const [query, setQuery] = useState('')
   const [editingTeam, setEditingTeam] = useState(false)
-  const [addingMatch, setAddingMatch] = useState(false)
+  const [editingMatchId, setEditingMatchId] = useState(null)
   const [chatInput, setChatInput] = useState('')
   const [creatingTeam, setCreatingTeam] = useState(false)
   if (!me) return null
@@ -301,13 +301,18 @@ export default function TeamScreen() {
         team={myTeam}
         members={members}
         canEdit={canEdit}
-        adding={addingMatch}
-        onStartAdd={() => setAddingMatch(true)}
-        onCancelAdd={() => setAddingMatch(false)}
+        editingMatchId={editingMatchId}
+        onStartAdd={() => setEditingMatchId('new')}
+        onStartEdit={(id) => setEditingMatchId(id)}
+        onCancel={() => setEditingMatchId(null)}
         onAdd={(match) => {
           teams.addMatch(myTeam.id, match)
           onMatchAdded(myTeam.id, match)
-          setAddingMatch(false)
+          setEditingMatchId(null)
+        }}
+        onUpdate={(matchId, match) => {
+          teams.updateMatch(myTeam.id, matchId, match)
+          setEditingMatchId(null)
         }}
       />
     </div>
@@ -403,89 +408,42 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
   )
 }
 
-function TeamMatchesCard({ team, members, canEdit, adding, onStartAdd, onCancelAdd, onAdd }) {
-  const [opponent, setOpponent] = useState('')
-  const [score, setScore] = useState('')
-  const [result, setResult] = useState('win')
-  const [mvpPlayerId, setMvpPlayerId] = useState(members[0]?.id || '')
-  const [mvpReason, setMvpReason] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-
-  const resetForm = () => {
-    setOpponent(''); setScore(''); setResult('win'); setMvpReason(''); setDate(new Date().toISOString().slice(0, 10))
-  }
-
-  const submit = () => {
-    if (!opponent.trim() || !score.trim()) return
-    onAdd({
-      opponent: opponent.trim(),
-      score: score.trim(),
-      result,
-      mvpPlayerId,
-      mvpReason: mvpReason.trim().slice(0, 15),
-      date,
-    })
-    resetForm()
-  }
-
+function TeamMatchesCard({
+  team,
+  members,
+  canEdit,
+  editingMatchId,
+  onStartAdd,
+  onStartEdit,
+  onCancel,
+  onAdd,
+  onUpdate,
+}) {
   const matches = [...(team.matches || [])].sort((a, b) => (a.date < b.date ? 1 : -1))
+  const editingMatch = editingMatchId && editingMatchId !== 'new'
+    ? matches.find((m) => m.id === editingMatchId) ?? null
+    : null
 
   return (
     <section className="info-card">
       <div className="card-title card-title-row">
         <span>試合結果</span>
-        {canEdit && !adding && (
-          <button type="button" className="small-btn card-edit-btn" onClick={onStartAdd}>編集</button>
+        {canEdit && !editingMatchId && (
+          <button type="button" className="small-btn card-edit-btn" onClick={onStartAdd}>追加</button>
         )}
       </div>
 
-      {adding && (
-        <div className="match-form">
-          <label className="field">
-            <span className="field-label">相手チーム</span>
-            <input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="例: ブルーフェニックス" />
-          </label>
-          <label className="field">
-            <span className="field-label">スコア</span>
-            <input value={score} onChange={(e) => setScore(e.target.value)} placeholder="例: 7-2" />
-          </label>
-          <label className="field">
-            <span className="field-label">結果</span>
-            <div className="role-row">
-              {[{ k: 'win', l: '勝利' }, { k: 'lose', l: '敗北' }, { k: 'draw', l: '引分' }].map((r) => (
-                <button key={r.k} type="button" className={`role-btn ${result === r.k ? 'active' : ''}`} onClick={() => setResult(r.k)}>
-                  {r.l}
-                </button>
-              ))}
-            </div>
-          </label>
-          <label className="field">
-            <span className="field-label">日付</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <label className="field">
-            <span className="field-label">MVP</span>
-            <select value={mvpPlayerId} onChange={(e) => setMvpPlayerId(e.target.value)}>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>{m.nickname}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="field-label">MVP理由（15文字以内）</span>
-            <input
-              value={mvpReason}
-              onChange={(e) => setMvpReason(e.target.value.slice(0, 15))}
-              maxLength={15}
-              placeholder="例: 決勝打"
-            />
-            <span className="char-count">{mvpReason.length} / 15</span>
-          </label>
-          <div className="btn-row">
-            <button className="outline-btn" onClick={() => { resetForm(); onCancelAdd() }}>キャンセル</button>
-            <button className="submit" onClick={submit}>登録</button>
-          </div>
-        </div>
+      {editingMatchId && (
+        <MatchForm
+          key={editingMatchId}
+          members={members}
+          match={editingMatch}
+          onCancel={onCancel}
+          onSave={(payload) => {
+            if (editingMatchId === 'new') onAdd(payload)
+            else onUpdate(editingMatchId, payload)
+          }}
+        />
       )}
 
       {matches.length === 0 ? (
@@ -495,6 +453,8 @@ function TeamMatchesCard({ team, members, canEdit, adding, onStartAdd, onCancelA
           {matches.map((m) => {
             const mvp = members.find((x) => x.id === m.mvpPlayerId) || null
             const resultLabel = m.result === 'win' ? '勝利' : m.result === 'lose' ? '敗北' : '引分'
+            const isEditing = editingMatchId === m.id
+            if (isEditing) return null
             return (
               <li key={m.id} className={`match-row ${m.result}`}>
                 <div className="match-main">
@@ -509,12 +469,94 @@ function TeamMatchesCard({ team, members, canEdit, adding, onStartAdd, onCancelA
                     {m.mvpReason && <span className="mvp-reason">「{m.mvpReason}」</span>}
                   </div>
                 )}
+                {canEdit && !editingMatchId && (
+                  <div className="match-actions">
+                    <button
+                      type="button"
+                      className="small-btn"
+                      onClick={() => onStartEdit(m.id)}
+                    >
+                      編集
+                    </button>
+                  </div>
+                )}
               </li>
             )
           })}
         </ul>
       )}
     </section>
+  )
+}
+
+function MatchForm({ members, match, onCancel, onSave }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [opponent, setOpponent] = useState(match?.opponent ?? '')
+  const [score, setScore] = useState(match?.score ?? '')
+  const [result, setResult] = useState(match?.result ?? 'win')
+  const [mvpPlayerId, setMvpPlayerId] = useState(match?.mvpPlayerId ?? members[0]?.id ?? '')
+  const [mvpReason, setMvpReason] = useState(match?.mvpReason ?? '')
+  const [date, setDate] = useState(match?.date ?? today)
+
+  const submit = () => {
+    if (!opponent.trim() || !score.trim()) return
+    onSave({
+      opponent: opponent.trim(),
+      score: score.trim(),
+      result,
+      mvpPlayerId,
+      mvpReason: mvpReason.trim().slice(0, 15),
+      date,
+    })
+  }
+
+  return (
+    <div className="match-form">
+      <label className="field">
+        <span className="field-label">相手チーム</span>
+        <input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="例: ブルーフェニックス" />
+      </label>
+      <label className="field">
+        <span className="field-label">スコア</span>
+        <input value={score} onChange={(e) => setScore(e.target.value)} placeholder="例: 7-2" />
+      </label>
+      <label className="field">
+        <span className="field-label">結果</span>
+        <div className="role-row">
+          {[{ k: 'win', l: '勝利' }, { k: 'lose', l: '敗北' }, { k: 'draw', l: '引分' }].map((r) => (
+            <button key={r.k} type="button" className={`role-btn ${result === r.k ? 'active' : ''}`} onClick={() => setResult(r.k)}>
+              {r.l}
+            </button>
+          ))}
+        </div>
+      </label>
+      <label className="field">
+        <span className="field-label">日付</span>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">MVP</span>
+        <select value={mvpPlayerId} onChange={(e) => setMvpPlayerId(e.target.value)}>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>{m.nickname}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span className="field-label">MVP理由（15文字以内）</span>
+        <input
+          value={mvpReason}
+          onChange={(e) => setMvpReason(e.target.value.slice(0, 15))}
+          maxLength={15}
+          placeholder="例: 決勝打"
+        />
+        <span className="char-count">{mvpReason.length} / 15</span>
+      </label>
+      <div className="btn-row">
+        <button className="outline-btn" onClick={onCancel}>キャンセル</button>
+        <button className="submit" onClick={submit}>{match ? '保存' : '登録'}</button>
+      </div>
+    </div>
   )
 }
 
