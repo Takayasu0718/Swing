@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { users, friendships, teams, activities } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
+import { sendFriendRequest } from '../lib/events.js'
 import ActivityItem from '../components/ActivityItem.jsx'
 import SearchBox from '../components/SearchBox.jsx'
 
@@ -46,6 +47,15 @@ export default function FriendsScreen() {
             <ul className="search-list">
               {searchResults.map((u) => {
                 const isFriend = friendIds.includes(u.id)
+                const relation = friendships
+                  .list()
+                  .find(
+                    (f) =>
+                      (f.fromUserId === me.id && f.toUserId === u.id) ||
+                      (f.fromUserId === u.id && f.toUserId === me.id),
+                  )
+                const outgoingPending = relation?.status === 'pending' && relation.fromUserId === me.id
+                const incomingPending = relation?.status === 'pending' && relation.toUserId === me.id
                 const team = allTeams.find((t) => t.memberIds?.includes(u.id))
                 return (
                   <li key={u.id} className="search-row">
@@ -56,8 +66,18 @@ export default function FriendsScreen() {
                     </div>
                     {isFriend ? (
                       <span className="friend-tag">フレンド</span>
+                    ) : outgoingPending ? (
+                      <span className="friend-tag">申請中</span>
+                    ) : incomingPending ? (
+                      <span className="friend-tag">承認待ち</span>
                     ) : (
-                      <button className="small-btn" disabled>申請（今後対応）</button>
+                      <button
+                        type="button"
+                        className="small-btn filled"
+                        onClick={() => sendFriendRequest(me.id, u.id)}
+                      >
+                        申請
+                      </button>
                     )}
                   </li>
                 )

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { users, session } from '../storage/storage.js'
 import { STAMPS } from '../storage/stamps.js'
 import { ROLES, DAILY_GOAL_OPTIONS } from '../storage/schema.js'
+import { onGoalRaised } from '../lib/events.js'
 
 export default function RegisterScreen({ onDone }) {
   const current = users.getCurrent()
@@ -30,11 +31,19 @@ export default function RegisterScreen({ onDone }) {
       advice: role === ROLES.COACH ? advice.trim() : '',
     }
 
+    const prevGoal = current?.dailyGoal ?? null
+    let savedId
     if (isEdit) {
       users.update(current.id, data)
+      savedId = current.id
     } else {
       const u = users.create(data)
       session.setCurrentUser(u.id)
+      savedId = u.id
+    }
+
+    if (role === ROLES.PLAYER) {
+      onGoalRaised(savedId, prevGoal, data.dailyGoal)
     }
     onDone?.()
   }

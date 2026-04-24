@@ -93,9 +93,11 @@ export function seedIfNeeded() {
   })
 
   // --- Friendships: all accepted except けんた (pending, to demo friend request UI) ---
+  let kentaFriendshipId = null
   roster.forEach((u) => {
     if (u.nickname === 'けんた') {
-      friendships.create({ fromUserId: u.id, toUserId: me.id, status: 'pending' })
+      const f = friendships.create({ fromUserId: u.id, toUserId: me.id, status: 'pending' })
+      kentaFriendshipId = f.id
     } else {
       friendships.create({ fromUserId: me.id, toUserId: u.id, status: 'accepted' })
     }
@@ -154,6 +156,7 @@ export function seedIfNeeded() {
     type: 'friend_request',
     fromUserId: byName['けんた'].id,
     content: `${byName['けんた'].nickname}さんからフレンド申請が届きました`,
+    requestId: kentaFriendshipId,
     read: false,
     createdAt: hoursAgo(1),
   })
@@ -183,7 +186,7 @@ export function seedIfNeeded() {
   })
   notifications.create({
     userId: me.id,
-    type: 'streak_10',
+    type: 'streak_milestone',
     fromUserId: byName['ほくと'].id,
     content: `${byName['ほくと'].nickname}さんが連続10日達成！おめでとう！`,
     read: true,

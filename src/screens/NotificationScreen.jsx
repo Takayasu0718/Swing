@@ -1,16 +1,51 @@
-import { users, notifications, friendships } from '../storage/storage.js'
+import { users, notifications, friendships, activities, teamRequests } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
+import {
+  acceptFriendRequest,
+  declineFriendRequest,
+  acceptTeamJoinRequest,
+  declineTeamJoinRequest,
+  acceptFriendTeamRequest,
+  declineFriendTeamRequest,
+} from '../lib/events.js'
 
 const TYPE_ICON = {
   swing_complete: '⚾',
-  streak_10: '🔥',
+  streak_milestone: '🔥',
   like: '♥',
   friend_request: '👥',
   friend_accepted: '✅',
   team_invite: '📣',
+  team_join_request: '🙋',
   friend_team_request: '🤝',
   goal_raised: '📈',
+}
+
+// Request types that have a pending record and show accept/decline buttons.
+const ACTIONABLE_TYPES = new Set(['friend_request', 'team_join_request', 'friend_team_request'])
+
+function resolveFriendshipId(n) {
+  if (n.requestId) return n.requestId
+  // Fallback for older notifications missing requestId
+  const f = friendships
+    .list()
+    .find((x) => x.fromUserId === n.fromUserId && x.toUserId === n.userId && x.status === 'pending')
+  return f?.id ?? null
+}
+
+function isRequestPending(n) {
+  if (n.type === 'friend_request') {
+    const id = resolveFriendshipId(n)
+    if (!id) return false
+    const f = friendships.get(id)
+    return !!f && f.status === 'pending'
+  }
+  if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
+    const r = n.requestId ? teamRequests.get(n.requestId) : null
+    return !!r && r.status === 'pending'
+  }
+  return false
 }
 
 export default function NotificationScreen() {
@@ -22,14 +57,20 @@ export default function NotificationScreen() {
 
   const markRead = (id) => notifications.markRead(id)
   const markAllRead = () => notifications.markAllRead(me.id)
-  const toggleLike = (id) => notifications.toggleLike(id, me.id)
+  // Like targets the underlying activity (spec: 通知一覧のアクティビティにもいいね可能).
+  const toggleActivityLike = (activityId) => activities.toggleLike(activityId, me.id)
 
-  const acceptFriend = (n) => {
-    // Find the friendship record and accept it
-    const pending = friendships
-      .list()
-      .find((f) => f.status === 'pending' && f.fromUserId === n.fromUserId && f.toUserId === me.id)
-    if (pending) friendships.accept(pending.id)
+  const handleAccept = (n) => {
+    if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
+    else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
+    else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
+    notifications.markRead(n.id)
+  }
+
+  const handleDecline = (n) => {
+    if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
+    else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
+    else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
     notifications.markRead(n.id)
   }
 
@@ -55,9 +96,10 @@ export default function NotificationScreen() {
           {items.map((n) => {
             const from = n.fromUserId ? users.get(n.fromUserId) : null
             const stamp = from ? getStamp(from.avatarStamp).label : (TYPE_ICON[n.type] || '🔔')
-            const liked = n.likeUserIds?.includes(me.id)
-            const likeCount = n.likeUserIds?.length || 0
-            const isFriendRequest = n.type === 'friend_request'
+            const activity = n.activityId ? activities.get(n.activityId) : null
+            const liked = activity?.likeUserIds?.includes(me.id) ?? false
+            const likeCount = activity?.likeUserIds?.length ?? 0
+            const actionable = ACTIONABLE_TYPES.has(n.type) && isRequestPending(n)
             return (
               <li
                 key={n.id}
@@ -68,21 +110,30 @@ export default function NotificationScreen() {
                 <div className="notif-body">
                   <div className="notif-content">{n.content}</div>
                   <div className="notif-time">{relativeTime(n.createdAt)}</div>
-                  {isFriendRequest && !n.read && (
-                    <button
-                      type="button"
-                      className="small-btn filled"
-                      onClick={(e) => { e.stopPropagation(); acceptFriend(n) }}
-                    >
-                      承認
-                    </button>
+                  {actionable && (
+                    <div className="notif-actions">
+                      <button
+                        type="button"
+                        className="small-btn filled"
+                        onClick={(e) => { e.stopPropagation(); handleAccept(n) }}
+                      >
+                        承認
+                      </button>
+                      <button
+                        type="button"
+                        className="small-btn"
+                        onClick={(e) => { e.stopPropagation(); handleDecline(n) }}
+                      >
+                        拒否
+                      </button>
+                    </div>
                   )}
                 </div>
-                {n.activityId && (
+                {activity && (
                   <button
                     type="button"
                     className={`like-btn ${liked ? 'liked' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); toggleLike(n.id) }}
+                    onClick={(e) => { e.stopPropagation(); toggleActivityLike(activity.id) }}
                     aria-pressed={liked}
                     aria-label="いいね"
                   >

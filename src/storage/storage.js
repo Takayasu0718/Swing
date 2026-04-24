@@ -11,6 +11,7 @@ const KEYS = {
   swings: PREFIX + 'swings',
   missions: PREFIX + 'missions',
   teams: PREFIX + 'teams',
+  teamRequests: PREFIX + 'teamRequests',
   friendships: PREFIX + 'friendships',
   notifications: PREFIX + 'notifications',
   activities: PREFIX + 'activities',
@@ -261,6 +262,56 @@ export const teams = {
     if (!t) return null
     const matches = (t.matches || []).map((m) => (m.id === matchId ? { ...m, ...patch } : m))
     return _teams.update(teamId, { matches })
+  },
+  addFriendTeam(aId, bId) {
+    const a = _teams.get(aId)
+    const b = _teams.get(bId)
+    if (!a || !b) return
+    const uniq = (arr) => Array.from(new Set(arr))
+    _teams.update(aId, { friendTeamIds: uniq([...(a.friendTeamIds || []), bId]) })
+    _teams.update(bId, { friendTeamIds: uniq([...(b.friendTeamIds || []), aId]) })
+  },
+  captainedBy(userId) {
+    return _teams.list().filter((t) => t.captainId === userId)
+  },
+}
+
+// ============ team requests (join + friend_team) ============
+const _teamRequests = makeCollection(KEYS.teamRequests)
+export const teamRequests = {
+  ..._teamRequests,
+  listPendingForTeam(teamId, kind) {
+    return _teamRequests
+      .list()
+      .filter((r) => r.teamId === teamId && r.status === 'pending' && (!kind || r.kind === kind))
+  },
+  findOutgoingJoin(userId, teamId) {
+    return _teamRequests
+      .list()
+      .find(
+        (r) =>
+          r.kind === 'join' &&
+          r.fromUserId === userId &&
+          r.teamId === teamId &&
+          r.status === 'pending',
+      )
+  },
+  findOutgoingFriendTeam(fromTeamId, toTeamId) {
+    return _teamRequests
+      .list()
+      .find(
+        (r) =>
+          r.kind === 'friend_team' &&
+          r.fromTeamId === fromTeamId &&
+          r.teamId === toTeamId &&
+          r.status === 'pending',
+      )
+  },
+  accept(id) {
+    return _teamRequests.update(id, { status: 'accepted' })
+  },
+  decline(id) {
+    return _teamRequests.update(id, { status: 'declined' })
   },
 }
 

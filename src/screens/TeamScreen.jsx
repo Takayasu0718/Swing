@@ -1,9 +1,14 @@
 import { useState } from 'react'
-import { users, teams, chats, activities } from '../storage/storage.js'
+import { users, teams, teamRequests, chats, activities } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
 import SearchBox from '../components/SearchBox.jsx'
 import ActivityItem from '../components/ActivityItem.jsx'
+import {
+  onMatchAdded,
+  sendTeamJoinRequest,
+  sendFriendTeamRequest,
+} from '../lib/events.js'
 
 export default function TeamScreen() {
   const me = users.getCurrent()
@@ -31,15 +36,28 @@ export default function TeamScreen() {
               <div className="empty-txt">該当するチームがありません</div>
             ) : (
               <ul className="search-list">
-                {searchResults.map((t) => (
-                  <li key={t.id} className="search-row">
-                    <div className="search-info">
-                      <div className="activity-name">{t.name}</div>
-                      <div className="search-sub">{t.description}</div>
-                    </div>
-                    <button className="small-btn" disabled>加入申請（今後対応）</button>
-                  </li>
-                ))}
+                {searchResults.map((t) => {
+                  const outgoing = teamRequests.findOutgoingJoin(me.id, t.id)
+                  return (
+                    <li key={t.id} className="search-row">
+                      <div className="search-info">
+                        <div className="activity-name">{t.name}</div>
+                        <div className="search-sub">{t.description}</div>
+                      </div>
+                      {outgoing ? (
+                        <span className="friend-tag">申請中</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="small-btn filled"
+                          onClick={() => sendTeamJoinRequest(t.id, me.id)}
+                        >
+                          加入申請
+                        </button>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </section>
@@ -87,6 +105,10 @@ export default function TeamScreen() {
               {searchResults.map((t) => {
                 const joined = t.id === myTeam.id
                 const isFriendTeam = friendTeamIds.includes(t.id)
+                const outgoingJoin = !isCaptain ? teamRequests.findOutgoingJoin(me.id, t.id) : null
+                const outgoingFriend = isCaptain
+                  ? teamRequests.findOutgoingFriendTeam(myTeam.id, t.id)
+                  : null
                 return (
                   <li key={t.id} className="search-row">
                     <div className="search-info">
@@ -97,9 +119,25 @@ export default function TeamScreen() {
                       <span className="friend-tag">所属中</span>
                     ) : isFriendTeam ? (
                       <span className="friend-tag">フレンドチーム</span>
+                    ) : outgoingJoin ? (
+                      <span className="friend-tag">申請中</span>
+                    ) : outgoingFriend ? (
+                      <span className="friend-tag">申請中</span>
+                    ) : isCaptain ? (
+                      <button
+                        type="button"
+                        className="small-btn filled"
+                        onClick={() => sendFriendTeamRequest(myTeam.id, t.id)}
+                      >
+                        フレンドチーム申請
+                      </button>
                     ) : (
-                      <button className="small-btn" disabled>
-                        {isCaptain ? 'フレンド申請（今後対応）' : '加入申請（今後対応）'}
+                      <button
+                        type="button"
+                        className="small-btn filled"
+                        onClick={() => sendTeamJoinRequest(t.id, me.id)}
+                      >
+                        加入申請
                       </button>
                     )}
                   </li>
@@ -224,6 +262,7 @@ export default function TeamScreen() {
         onCancelAdd={() => setAddingMatch(false)}
         onAdd={(match) => {
           teams.addMatch(myTeam.id, match)
+          onMatchAdded(myTeam.id, match)
           setAddingMatch(false)
         }}
       />

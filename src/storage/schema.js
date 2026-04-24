@@ -87,7 +87,8 @@
  * @typedef {Object} Notification
  * @property {string} id
  * @property {string} userId       // recipient
- * @property {'swing_complete'|'streak_10'|'like'|'friend_request'|'friend_accepted'|'team_invite'|'goal_raised'|'friend_team_request'} type
+ * @property {'swing_complete'|'streak_milestone'|'like'|'friend_request'|'friend_accepted'|'team_invite'|'team_join_request'|'goal_raised'|'friend_team_request'} type
+ * @property {string|null} requestId // friendshipId or teamRequestId (for actionable notifications)
  * @property {string|null} fromUserId
  * @property {string} content
  * @property {boolean} read
@@ -128,6 +129,17 @@ export const ACTIVITY_TYPES = Object.freeze({
  */
 
 /**
+ * @typedef {Object} TeamRequest
+ * @property {string} id
+ * @property {string} teamId                // target team receiving the request
+ * @property {string} fromUserId            // applicant (join) or source team's captain (friend_team)
+ * @property {string|null} fromTeamId       // for friend_team requests
+ * @property {'join'|'friend_team'} kind
+ * @property {'pending'|'accepted'|'declined'} status
+ * @property {string} createdAt
+ */
+
+/**
  * @typedef {Object} ChatMessage
  * @property {string} id
  * @property {string} teamId
@@ -139,11 +151,12 @@ export const ACTIVITY_TYPES = Object.freeze({
 
 export const NOTIFICATION_TYPES = Object.freeze([
   { key: 'swing_complete', label: '素振り完了通知' },
-  { key: 'streak_10', label: '連続10日達成通知' },
+  { key: 'streak_milestone', label: '連続達成通知（5日毎）' },
   { key: 'like', label: 'いいね通知' },
   { key: 'friend_request', label: 'フレンド申請通知' },
   { key: 'friend_accepted', label: 'フレンド承認通知' },
   { key: 'team_invite', label: 'チーム招待通知' },
+  { key: 'team_join_request', label: 'チーム加入申請通知' },
   { key: 'friend_team_request', label: 'フレンドチーム申請通知' },
   { key: 'goal_raised', label: '目標回数アップ通知' },
 ])

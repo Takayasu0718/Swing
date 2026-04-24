@@ -3,6 +3,7 @@ import { ROLES } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays, daysUntilNextLevel, stageImage, stageLabel } from '../lib/dragon.js'
+import { onMissionApproved } from '../lib/events.js'
 
 export default function HomeScreen() {
   const user = users.getCurrent()
@@ -27,7 +28,11 @@ export default function HomeScreen() {
   const completed = !!todayMission?.completed
 
   const claimMission = () => missions.claim(user.id, today, user.dailyGoal)
-  const approveMission = () => missions.approve(user.id, today)
+  const approveMission = () => {
+    if (todayMission?.completed) return
+    missions.approve(user.id, today)
+    onMissionApproved(user.id)
+  }
 
   return (
     <div className="screen home">

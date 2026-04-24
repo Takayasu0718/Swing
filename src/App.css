@@ -1246,6 +1246,12 @@ body {
   margin-top: 0.25rem;
 }
 
+.notif-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
 /* ================ Tab bar ================ */
 .tab-bar {
   position: sticky;
