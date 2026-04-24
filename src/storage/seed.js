@@ -14,44 +14,38 @@ function daysAgo(d) {
   return new Date(Date.now() - d * 24 * 3600 * 1000).toISOString()
 }
 
+// Sakuradai Sunbird roster — all 16 are friends of the current user AND teammates.
+const SUNBIRD_ROSTER = [
+  { nickname: 'りくた', avatarStamp: 'fire', dailyGoal: 100 },
+  { nickname: 'けい', avatarStamp: 'star', dailyGoal: 75 },
+  { nickname: 'みもり', avatarStamp: 'muscle', dailyGoal: 125 },
+  { nickname: 'ほくと', avatarStamp: 'target', dailyGoal: 50 },
+  { nickname: 'えいた', avatarStamp: 'crown', dailyGoal: 150 },
+  { nickname: 'りんたろう', avatarStamp: 'dragon', dailyGoal: 100 },
+  { nickname: 'そうた', avatarStamp: 'baseball', dailyGoal: 75 },
+  { nickname: 'はじめ', avatarStamp: 'bat', dailyGoal: 100 },
+  { nickname: 'ちなつ', avatarStamp: 'fire', dailyGoal: 50 },
+  { nickname: 'ゆう', avatarStamp: 'star', dailyGoal: 75 },
+  { nickname: 'こう', avatarStamp: 'muscle', dailyGoal: 150 },
+  { nickname: 'そら', avatarStamp: 'target', dailyGoal: 100 },
+  { nickname: 'いつき', avatarStamp: 'crown', dailyGoal: 125 },
+  { nickname: 'かい', avatarStamp: 'dragon', dailyGoal: 75 },
+  { nickname: 'そう', avatarStamp: 'baseball', dailyGoal: 100 },
+  { nickname: 'けんた', avatarStamp: 'bat', dailyGoal: 100 },
+]
+
 export function seedIfNeeded() {
   const me = users.getCurrent()
   if (!me) return
   if (users.list().some((u) => u.mock)) return
 
-  // --- Mock users (friends + teammates) ---
-  const taro = users.create({
-    ...MOCK_FLAG,
-    nickname: 'たろう',
-    avatarStamp: 'fire',
-    role: 'player',
-    dailyGoal: 100,
-    email: 'taro@example.com',
-  })
-  const hana = users.create({
-    ...MOCK_FLAG,
-    nickname: 'はな',
-    avatarStamp: 'star',
-    role: 'player',
-    dailyGoal: 75,
-    email: 'hana@example.com',
-  })
-  const ken = users.create({
-    ...MOCK_FLAG,
-    nickname: 'けん',
-    avatarStamp: 'muscle',
-    role: 'player',
-    dailyGoal: 150,
-    email: 'ken@example.com',
-  })
-  const sara = users.create({
-    ...MOCK_FLAG,
-    nickname: 'さら',
-    avatarStamp: 'target',
-    role: 'player',
-    dailyGoal: 50,
-    email: 'sara@example.com',
-  })
+  // --- Sakuradai Sunbird roster ---
+  const roster = SUNBIRD_ROSTER.map((p) =>
+    users.create({ ...MOCK_FLAG, role: 'player', ...p }),
+  )
+  const byName = Object.fromEntries(roster.map((u) => [u.nickname, u]))
+
+  // --- Opposing/friend team captain ---
   const phoenixCaptain = users.create({
     ...MOCK_FLAG,
     nickname: 'れん',
@@ -66,7 +60,7 @@ export function seedIfNeeded() {
     name: 'ブルーフェニックス',
     description: '青い炎のチーム',
     captainId: phoenixCaptain.id,
-    memberIds: [phoenixCaptain.id, sara.id],
+    memberIds: [phoenixCaptain.id],
     friendTeamIds: [],
     nextMatch: null,
     matches: [],
@@ -74,10 +68,10 @@ export function seedIfNeeded() {
 
   const myTeam = teams.create({
     mock: true,
-    name: 'スイングドラゴンズ',
+    name: '桜台さんバード',
     description: '毎日コツコツ素振りで強くなるチーム！',
     captainId: me.id,
-    memberIds: [me.id, taro.id, hana.id],
+    memberIds: [me.id, ...roster.map((u) => u.id)],
     friendTeamIds: [phoenixTeam.id],
     nextMatch: {
       tournament: '市民大会 予選',
@@ -90,7 +84,7 @@ export function seedIfNeeded() {
         opponent: 'ブルーフェニックス',
         score: '7-2',
         result: 'win',
-        mvpPlayerId: taro.id,
+        mvpPlayerId: byName['りくた'].id,
         mvpReason: '決勝タイムリーの一発',
         date: daysAgo(14).slice(0, 10),
         createdAt: daysAgo(14),
@@ -98,15 +92,18 @@ export function seedIfNeeded() {
     ],
   })
 
-  // --- Friendships ---
-  friendships.create({ fromUserId: me.id, toUserId: taro.id, status: 'accepted' })
-  friendships.create({ fromUserId: me.id, toUserId: hana.id, status: 'accepted' })
-  friendships.create({ fromUserId: sara.id, toUserId: me.id, status: 'accepted' })
-  friendships.create({ fromUserId: ken.id, toUserId: me.id, status: 'pending' })
+  // --- Friendships: all accepted except けんた (pending, to demo friend request UI) ---
+  roster.forEach((u) => {
+    if (u.nickname === 'けんた') {
+      friendships.create({ fromUserId: u.id, toUserId: me.id, status: 'pending' })
+    } else {
+      friendships.create({ fromUserId: me.id, toUserId: u.id, status: 'accepted' })
+    }
+  })
 
   // --- Activities ---
   activities.create({
-    userId: taro.id,
+    userId: byName['りくた'].id,
     type: ACTIVITY_TYPES.SWING_ACHIEVED,
     content: '今日も100回の素振り達成！',
     teamId: myTeam.id,
@@ -114,7 +111,7 @@ export function seedIfNeeded() {
     createdAt: hoursAgo(2),
   })
   activities.create({
-    userId: hana.id,
+    userId: byName['けい'].id,
     type: ACTIVITY_TYPES.LEVEL_UP,
     content: 'スイングドラゴンが Lv.5 になった！',
     teamId: myTeam.id,
@@ -122,49 +119,49 @@ export function seedIfNeeded() {
     createdAt: hoursAgo(5),
   })
   activities.create({
-    userId: sara.id,
+    userId: byName['そら'].id,
     type: ACTIVITY_TYPES.GOAL_RAISED,
-    content: '目標回数を50回にアップ！',
-    teamId: null,
-    likeUserIds: [me.id, taro.id],
+    content: '目標回数を100回にアップ！',
+    teamId: myTeam.id,
+    likeUserIds: [me.id, byName['りくた'].id],
     createdAt: hoursAgo(9),
   })
   activities.create({
-    userId: taro.id,
+    userId: byName['ほくと'].id,
     type: ACTIVITY_TYPES.SWING_ACHIEVED,
     content: '連続10日達成！！',
     teamId: myTeam.id,
-    likeUserIds: [hana.id, me.id],
+    likeUserIds: [byName['けい'].id, me.id],
     createdAt: daysAgo(1),
   })
   activities.create({
-    userId: hana.id,
+    userId: byName['はじめ'].id,
     type: ACTIVITY_TYPES.POST,
     content: '今日は雨だから素振りはお休み。明日がんばる！',
-    teamId: null,
+    teamId: myTeam.id,
     likeUserIds: [],
     createdAt: daysAgo(2),
   })
 
   // --- Team chat ---
-  chats.post({ teamId: myTeam.id, userId: taro.id, content: 'おはよう！今日も素振りしよう' })
-  chats.post({ teamId: myTeam.id, userId: hana.id, content: '行ってきます💪' })
-  chats.post({ teamId: myTeam.id, userId: taro.id, content: '今週末の試合、頑張ろう！' })
+  chats.post({ teamId: myTeam.id, userId: byName['りくた'].id, content: 'おはよう！今日も素振りしよう' })
+  chats.post({ teamId: myTeam.id, userId: byName['けい'].id, content: '行ってきます💪' })
+  chats.post({ teamId: myTeam.id, userId: byName['そう'].id, content: '今週末の試合、頑張ろう！' })
 
   // --- Notifications to current user (mix unread/read) ---
   notifications.create({
     userId: me.id,
     type: 'friend_request',
-    fromUserId: ken.id,
-    content: `${ken.nickname}さんからフレンド申請が届きました`,
+    fromUserId: byName['けんた'].id,
+    content: `${byName['けんた'].nickname}さんからフレンド申請が届きました`,
     read: false,
     createdAt: hoursAgo(1),
   })
   notifications.create({
     userId: me.id,
     type: 'like',
-    fromUserId: taro.id,
-    content: `${taro.nickname}さんがあなたのアクティビティにいいねしました`,
+    fromUserId: byName['りくた'].id,
+    content: `${byName['りくた'].nickname}さんがあなたの今日の素振り達成にいいねしました`,
     read: false,
     createdAt: hoursAgo(3),
   })
@@ -179,16 +176,16 @@ export function seedIfNeeded() {
   notifications.create({
     userId: me.id,
     type: 'goal_raised',
-    fromUserId: sara.id,
-    content: `${sara.nickname}さんが目標回数を50回にアップしました`,
+    fromUserId: byName['そら'].id,
+    content: `${byName['そら'].nickname}さんが目標回数を100回にアップしました`,
     read: true,
     createdAt: daysAgo(1),
   })
   notifications.create({
     userId: me.id,
     type: 'streak_10',
-    fromUserId: taro.id,
-    content: `${taro.nickname}さんが連続10日達成！おめでとう！`,
+    fromUserId: byName['ほくと'].id,
+    content: `${byName['ほくと'].nickname}さんが連続10日達成！おめでとう！`,
     read: true,
     createdAt: daysAgo(2),
   })

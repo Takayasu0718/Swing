@@ -117,10 +117,12 @@ export default function HomeScreen() {
 
       <NextMatchCard userId={user.id} />
 
-      {coachAdvice.length > 0 && (
-        <section className="advice-card">
-          <div className="card-title">監督・コーチからの一言</div>
-          {coachAdvice.map((c) => (
+      <section className="advice-card">
+        <div className="card-title">監督・コーチからの一言アドバイス</div>
+        {coachAdvice.length === 0 ? (
+          <div className="empty-txt">まだアドバイスが届いていません</div>
+        ) : (
+          coachAdvice.map((c) => (
             <div key={c.id} className="advice-item">
               <span className="advice-stamp" aria-hidden>{c.stamp.label}</span>
               <div>
@@ -128,9 +130,9 @@ export default function HomeScreen() {
                 <div className="advice-text">{c.advice}</div>
               </div>
             </div>
-          ))}
-        </section>
-      )}
+          ))
+        )}
+      </section>
 
       {!isPlayer && (
         <section className="info-card">

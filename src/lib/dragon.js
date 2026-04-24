@@ -4,7 +4,7 @@
 //   N 21+   -> 5 days
 // Evolution image changes every 10 levels.
 
-import stage1 from '../assets/dragon/stage1.svg'
+import stage1 from '../assets/dragon/stage1.png'
 import stage2 from '../assets/dragon/stage2.svg'
 import stage3 from '../assets/dragon/stage3.svg'
 
