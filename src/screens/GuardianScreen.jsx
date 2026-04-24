@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { users, missions, settings, __resetAll } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays } from '../lib/dragon.js'
+import { ensureDemoTeams } from '../storage/seed.js'
 
 export default function GuardianScreen({ onNavigate }) {
+  const [syncedAt, setSyncedAt] = useState(null)
   const user = users.getCurrent()
   if (!user) return null
 
@@ -30,6 +33,11 @@ export default function GuardianScreen({ onNavigate }) {
   const resetAll = () => {
     if (!confirm('本当にすべてのデータをリセットしますか？\nプロフィール・素振り記録・ミッション履歴がすべて削除されます。')) return
     __resetAll()
+  }
+
+  const syncData = () => {
+    ensureDemoTeams()
+    setSyncedAt(new Date())
   }
 
   return (
@@ -110,6 +118,17 @@ export default function GuardianScreen({ onNavigate }) {
       <section className="info-card">
         <div className="card-title">データ管理</div>
         <div className="empty-txt">
+          新しく追加されたデモチームなどを同期します。既存データは保持されます。
+        </div>
+        <button className="outline-btn" onClick={syncData}>
+          データ更新
+        </button>
+        {syncedAt && (
+          <div className="empty-txt" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+            最終更新: {syncedAt.toLocaleTimeString('ja-JP')}
+          </div>
+        )}
+        <div className="empty-txt" style={{ marginTop: '1rem' }}>
           デバイスに保存された情報（プロフィール、素振り記録、ミッション履歴、設定）をすべて削除します。
         </div>
         <button className="danger-btn" onClick={resetAll}>
