@@ -9,6 +9,8 @@ import FriendsScreen from './screens/FriendsScreen.jsx'
 import TeamScreen from './screens/TeamScreen.jsx'
 import GuardianScreen from './screens/GuardianScreen.jsx'
 import TabBar from './components/TabBar.jsx'
+import ProfileModal from './components/ProfileModal.jsx'
+import { ProfileProvider } from './hooks/useProfile.jsx'
 
 const TABS = [
   { key: 'register', label: '登録', icon: '👤' },
@@ -57,9 +59,12 @@ export default function App() {
   }
 
   return (
-    <div className="app-root">
-      <div className="screen-container">{screen}</div>
-      <TabBar tabs={TABS} active={activeTab} onChange={setTab} locked={!current ? 'register' : null} />
-    </div>
+    <ProfileProvider>
+      <div className="app-root">
+        <div className="screen-container">{screen}</div>
+        <TabBar tabs={TABS} active={activeTab} onChange={setTab} locked={!current ? 'register' : null} />
+        <ProfileModal />
+      </div>
+    </ProfileProvider>
   )
 }

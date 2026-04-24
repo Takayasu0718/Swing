@@ -9,6 +9,7 @@ import {
   acceptFriendTeamRequest,
   declineFriendTeamRequest,
 } from '../lib/events.js'
+import { useProfile } from '../hooks/useProfile.jsx'
 
 const TYPE_ICON = {
   swing_complete: '⚾',
@@ -50,6 +51,7 @@ function isRequestPending(n) {
 
 export default function NotificationScreen() {
   const me = users.getCurrent()
+  const { openProfile } = useProfile()
   if (!me) return null
 
   const items = notifications.listByUser(me.id)
@@ -106,7 +108,18 @@ export default function NotificationScreen() {
                 className={`notif-row ${n.read ? '' : 'unread'}`}
                 onClick={() => markRead(n.id)}
               >
-                <span className="notif-icon" aria-hidden>{stamp}</span>
+                {from ? (
+                  <button
+                    type="button"
+                    className="notif-icon-btn"
+                    onClick={(e) => { e.stopPropagation(); openProfile(from.id) }}
+                    aria-label={`${from.nickname}のプロフィール`}
+                  >
+                    <span className="notif-icon" aria-hidden>{stamp}</span>
+                  </button>
+                ) : (
+                  <span className="notif-icon" aria-hidden>{stamp}</span>
+                )}
                 <div className="notif-body">
                   <div className="notif-content">{n.content}</div>
                   <div className="notif-time">{relativeTime(n.createdAt)}</div>

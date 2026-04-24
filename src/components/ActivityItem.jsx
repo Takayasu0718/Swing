@@ -1,8 +1,10 @@
 import { users } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
+import { useProfile } from '../hooks/useProfile.jsx'
 
 export default function ActivityItem({ activity, currentUserId, onLike }) {
+  const { openProfile } = useProfile()
   const actor = users.get(activity.userId)
   if (!actor) return null
   const stamp = getStamp(actor.avatarStamp)
@@ -11,10 +13,23 @@ export default function ActivityItem({ activity, currentUserId, onLike }) {
 
   return (
     <article className="activity-item">
-      <span className="activity-stamp" aria-hidden>{stamp.label}</span>
+      <button
+        type="button"
+        className="activity-author"
+        onClick={() => openProfile(actor.id)}
+        aria-label={`${actor.nickname}のプロフィール`}
+      >
+        <span className="activity-stamp" aria-hidden>{stamp.label}</span>
+      </button>
       <div className="activity-body">
         <div className="activity-head">
-          <span className="activity-name">{actor.nickname}</span>
+          <button
+            type="button"
+            className="activity-name-btn"
+            onClick={() => openProfile(actor.id)}
+          >
+            {actor.nickname}
+          </button>
           <span className="activity-time">{relativeTime(activity.createdAt)}</span>
         </div>
         <div className="activity-content">{activity.content}</div>

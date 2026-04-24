@@ -4,9 +4,11 @@ import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays, daysUntilNextLevel, stageImage, stageLabel } from '../lib/dragon.js'
 import { onMissionApproved } from '../lib/events.js'
+import { useProfile } from '../hooks/useProfile.jsx'
 
 export default function HomeScreen() {
   const user = users.getCurrent()
+  const { openProfile } = useProfile()
   if (!user) return null
 
   const isPlayer = user.role === ROLES.PLAYER
@@ -21,7 +23,13 @@ export default function HomeScreen() {
   const coachAdvice = users
     .list()
     .filter((u) => u.role === ROLES.COACH && u.advice)
-    .map((u) => ({ id: u.id, nickname: u.nickname, advice: u.advice, stamp: getStamp(u.avatarStamp) }))
+    .map((u) => ({
+      id: u.id,
+      userId: u.id,
+      nickname: u.nickname,
+      advice: u.advice,
+      stamp: getStamp(u.avatarStamp),
+    }))
 
   const todayMission = isPlayer ? missions.get(user.id, today) : null
   const childClaimed = !!todayMission?.childClaimed
@@ -128,13 +136,18 @@ export default function HomeScreen() {
           <div className="empty-txt">まだアドバイスが届いていません</div>
         ) : (
           coachAdvice.map((c) => (
-            <div key={c.id} className="advice-item">
+            <button
+              key={c.id}
+              type="button"
+              className="advice-item advice-item-btn"
+              onClick={() => openProfile(c.userId)}
+            >
               <span className="advice-stamp" aria-hidden>{c.stamp.label}</span>
               <div>
                 <div className="advice-name">{c.nickname}</div>
                 <div className="advice-text">{c.advice}</div>
               </div>
-            </div>
+            </button>
           ))
         )}
       </section>

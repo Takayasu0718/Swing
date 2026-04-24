@@ -11,9 +11,11 @@ import {
 } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
+import { useProfile } from '../hooks/useProfile.jsx'
 
 export default function TeamScreen() {
   const me = users.getCurrent()
+  const { openProfile } = useProfile()
   const [query, setQuery] = useState('')
   const [editingTeam, setEditingTeam] = useState(false)
   const [addingMatch, setAddingMatch] = useState(false)
@@ -188,10 +190,16 @@ export default function TeamScreen() {
         <div className="card-title">メンバー（{members.length}）</div>
         <ul className="friend-chips">
           {members.map((m) => (
-            <li key={m.id} className="friend-chip">
-              <span className="activity-stamp" aria-hidden>{getStamp(m.avatarStamp).label}</span>
-              <span className="activity-name">{m.nickname}</span>
-              {m.id === myTeam.captainId && <span className="captain-tag">C</span>}
+            <li key={m.id}>
+              <button
+                type="button"
+                className="friend-chip"
+                onClick={() => openProfile(m.id)}
+              >
+                <span className="activity-stamp" aria-hidden>{getStamp(m.avatarStamp).label}</span>
+                <span className="activity-name">{m.nickname}</span>
+                {m.id === myTeam.captainId && <span className="captain-tag">C</span>}
+              </button>
             </li>
           ))}
         </ul>
@@ -223,10 +231,23 @@ export default function TeamScreen() {
               const isMine = c.userId === me.id
               return (
                 <div key={c.id} className={`chat-row ${isMine ? 'mine' : ''}`}>
-                  <span className="activity-stamp small" aria-hidden>{getStamp(sender?.avatarStamp).label}</span>
+                  <button
+                    type="button"
+                    className="activity-author"
+                    onClick={() => sender && openProfile(sender.id)}
+                    aria-label={sender ? `${sender.nickname}のプロフィール` : undefined}
+                  >
+                    <span className="activity-stamp small" aria-hidden>{getStamp(sender?.avatarStamp).label}</span>
+                  </button>
                   <div className="chat-body">
                     <div className="chat-head">
-                      <span className="activity-name small">{sender?.nickname}</span>
+                      <button
+                        type="button"
+                        className="activity-name-btn small"
+                        onClick={() => sender && openProfile(sender.id)}
+                      >
+                        {sender?.nickname}
+                      </button>
                       <span className="activity-time">{relativeTime(c.createdAt)}</span>
                     </div>
                     <div className="chat-bubble">{c.content}</div>

@@ -5,9 +5,11 @@ import { sendFriendRequest } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
 import ActivityItem from '../components/ActivityItem.jsx'
 import SearchBox from '../components/SearchBox.jsx'
+import { useProfile } from '../hooks/useProfile.jsx'
 
 export default function FriendsScreen() {
   const me = users.getCurrent()
+  const { openProfile } = useProfile()
   const [query, setQuery] = useState('')
   if (!me) return null
 
@@ -50,11 +52,17 @@ export default function FriendsScreen() {
           const team = allTeams.find((t) => t.memberIds?.includes(u.id))
           return (
             <li key={u.id} className="search-row">
-              <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
-              <div className="search-info">
-                <div className="activity-name">{u.nickname}</div>
-                {team && <div className="search-sub">{team.name}</div>}
-              </div>
+              <button
+                type="button"
+                className="row-link"
+                onClick={() => openProfile(u.id)}
+              >
+                <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
+                <div className="search-info">
+                  <div className="activity-name">{u.nickname}</div>
+                  {team && <div className="search-sub">{team.name}</div>}
+                </div>
+              </button>
               {isFriend ? (
                 <span className="friend-tag">フレンド</span>
               ) : outgoingPending ? (
@@ -95,9 +103,15 @@ export default function FriendsScreen() {
         ) : (
           <ul className="friend-chips">
             {friends.map((f) => (
-              <li key={f.id} className="friend-chip">
-                <span className="activity-stamp" aria-hidden>{getStamp(f.avatarStamp).label}</span>
-                <span className="activity-name">{f.nickname}</span>
+              <li key={f.id}>
+                <button
+                  type="button"
+                  className="friend-chip"
+                  onClick={() => openProfile(f.id)}
+                >
+                  <span className="activity-stamp" aria-hidden>{getStamp(f.avatarStamp).label}</span>
+                  <span className="activity-name">{f.nickname}</span>
+                </button>
               </li>
             ))}
           </ul>
