@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm create *)",
+      "Bash(mv swing-app-tmp/* swing-app-tmp/.* .)",
+      "Bash(rmdir swing-app-tmp *)",
+      "Bash(npm install *)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(npm cache *)",
+      "Bash(npm run *)",
+      "Bash(open *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
