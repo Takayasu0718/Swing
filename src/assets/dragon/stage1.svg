@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" aria-label="baby swing dragon">
+  <ellipse cx="100" cy="180" rx="55" ry="6" fill="#1e3a8a" opacity="0.12"/>
+  <ellipse cx="100" cy="120" rx="55" ry="50" fill="#60a5fa"/>
+  <ellipse cx="100" cy="135" rx="30" ry="28" fill="#dbeafe"/>
+  <path d="M55 108 Q40 98 45 122 Q55 118 62 120 Z" fill="#3b82f6"/>
+  <path d="M145 108 Q160 98 155 122 Q145 118 138 120 Z" fill="#3b82f6"/>
+  <ellipse cx="90" cy="78" rx="4.5" ry="7" fill="#2563eb"/>
+  <ellipse cx="110" cy="78" rx="4.5" ry="7" fill="#2563eb"/>
+  <circle cx="82" cy="108" r="9" fill="#fff"/>
+  <circle cx="118" cy="108" r="9" fill="#fff"/>
+  <circle cx="84" cy="110" r="5" fill="#0f172a"/>
+  <circle cx="120" cy="110" r="5" fill="#0f172a"/>
+  <circle cx="85.5" cy="108" r="1.8" fill="#fff"/>
+  <circle cx="121.5" cy="108" r="1.8" fill="#fff"/>
+  <path d="M92 128 Q100 134 108 128" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <circle cx="72" cy="124" r="5" fill="#fca5a5" opacity="0.7"/>
+  <circle cx="128" cy="124" r="5" fill="#fca5a5" opacity="0.7"/>
+  <path d="M150 140 Q170 140 170 160" stroke="#3b82f6" stroke-width="10" stroke-linecap="round" fill="none"/>
+</svg>

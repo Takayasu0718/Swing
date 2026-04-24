@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" aria-label="teen swing dragon">
+  <ellipse cx="100" cy="184" rx="65" ry="6" fill="#1e3a8a" opacity="0.12"/>
+  <path d="M44 86 Q0 64 6 116 Q28 106 56 116 Z" fill="#2563eb"/>
+  <path d="M156 86 Q200 64 194 116 Q172 106 144 116 Z" fill="#2563eb"/>
+  <path d="M14 84 L28 108" stroke="#1e3a8a" stroke-width="1.5"/>
+  <path d="M30 74 L36 108" stroke="#1e3a8a" stroke-width="1.5"/>
+  <path d="M186 84 L172 108" stroke="#1e3a8a" stroke-width="1.5"/>
+  <path d="M170 74 L164 108" stroke="#1e3a8a" stroke-width="1.5"/>
+  <ellipse cx="100" cy="124" rx="48" ry="55" fill="#2563eb"/>
+  <ellipse cx="100" cy="138" rx="26" ry="32" fill="#bfdbfe"/>
+  <path d="M95 70 L100 60 L105 70 Z" fill="#0f172a"/>
+  <path d="M78 70 L86 88 L94 70 Z" fill="#0f172a"/>
+  <path d="M106 70 L114 88 L122 70 Z" fill="#0f172a"/>
+  <circle cx="82" cy="110" r="9" fill="#fff"/>
+  <circle cx="118" cy="110" r="9" fill="#fff"/>
+  <circle cx="84" cy="112" r="5" fill="#0f172a"/>
+  <circle cx="120" cy="112" r="5" fill="#0f172a"/>
+  <circle cx="85.5" cy="110" r="1.8" fill="#fff"/>
+  <circle cx="121.5" cy="110" r="1.8" fill="#fff"/>
+  <path d="M90 132 Q100 140 110 132" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="72" cy="126" r="5" fill="#fca5a5" opacity="0.7"/>
+  <circle cx="128" cy="126" r="5" fill="#fca5a5" opacity="0.7"/>
+  <path d="M148 152 Q180 156 176 180" stroke="#2563eb" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <path d="M176 180 L186 174 L182 188 Z" fill="#1e3a8a"/>
+</svg>
