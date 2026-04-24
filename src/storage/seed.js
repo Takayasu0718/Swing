@@ -45,7 +45,7 @@ export function seedIfNeeded() {
   )
   const byName = Object.fromEntries(roster.map((u) => [u.nickname, u]))
 
-  // --- Opposing/friend team captain ---
+  // --- Demo team captains ---
   const phoenixCaptain = users.create({
     ...MOCK_FLAG,
     nickname: 'れん',
@@ -53,8 +53,42 @@ export function seedIfNeeded() {
     role: 'player',
     dailyGoal: 125,
   })
+  const easternCaptain = users.create({
+    ...MOCK_FLAG,
+    nickname: 'だいき',
+    avatarStamp: 'fire',
+    role: 'player',
+    dailyGoal: 150,
+  })
+  const hazawaCaptain = users.create({
+    ...MOCK_FLAG,
+    nickname: 'そうご',
+    avatarStamp: 'star',
+    role: 'player',
+    dailyGoal: 100,
+  })
 
-  // --- Teams ---
+  // --- Demo teams (searchable/applyable) ---
+  teams.create({
+    mock: true,
+    name: 'イースタンボーイズ',
+    description: '東エリアの強豪チーム',
+    captainId: easternCaptain.id,
+    memberIds: [easternCaptain.id],
+    friendTeamIds: [],
+    nextMatch: null,
+    matches: [],
+  })
+  teams.create({
+    mock: true,
+    name: '羽沢フォースターズ',
+    description: '四つ星の意志で勝つ！',
+    captainId: hazawaCaptain.id,
+    memberIds: [hazawaCaptain.id],
+    friendTeamIds: [],
+    nextMatch: null,
+    matches: [],
+  })
   const phoenixTeam = teams.create({
     mock: true,
     name: 'ブルーフェニックス',
