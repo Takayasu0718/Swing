@@ -52,6 +52,8 @@ export default function TeamScreen() {
   }
 
   const isCaptain = myTeam.captainId === me.id
+  // MVPでは全員編集可。将来的に権限管理を戻す場合は isCaptain に差し替える。
+  const canEdit = true
   const members = (myTeam.memberIds || []).map((id) => users.get(id)).filter(Boolean)
   const friendTeamIds = myTeam.friendTeamIds || []
   const friendTeamActivities = friendTeamIds.flatMap((fid) => activities.listByTeam(fid))
@@ -110,7 +112,7 @@ export default function TeamScreen() {
 
       <TeamInfoCard
         team={myTeam}
-        canEdit={isCaptain}
+        canEdit={canEdit}
         members={members}
         editing={editingTeam}
         onStartEdit={() => setEditingTeam(true)}
@@ -216,7 +218,7 @@ export default function TeamScreen() {
       <TeamMatchesCard
         team={myTeam}
         members={members}
-        canEdit={isCaptain}
+        canEdit={canEdit}
         adding={addingMatch}
         onStartAdd={() => setAddingMatch(true)}
         onCancelAdd={() => setAddingMatch(false)}
