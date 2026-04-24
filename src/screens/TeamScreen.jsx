@@ -10,6 +10,7 @@ import {
   sendFriendTeamRequest,
 } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
+import { ACTIVITY_TYPES } from '../storage/schema.js'
 
 export default function TeamScreen() {
   const me = users.getCurrent()
@@ -93,7 +94,10 @@ export default function TeamScreen() {
   const friendTeamIds = myTeam.friendTeamIds || []
   const friendTeamActivities = friendTeamIds.flatMap((fid) => activities.listByTeam(fid))
   const friendTeams = friendTeamIds.map((fid) => teams.get(fid)).filter(Boolean)
-  const teamActivities = activities.listByTeam(myTeam.id)
+  // Exclude match_result from teammates timeline — shown separately in 試合結果 card.
+  const teamActivities = activities
+    .listByTeam(myTeam.id)
+    .filter((a) => a.type !== ACTIVITY_TYPES.MATCH_RESULT)
   const teamChat = chats.listByTeam(myTeam.id)
 
   const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
