@@ -748,11 +748,15 @@ body {
 }
 
 /* ================ Search box ================ */
+.search-autocomplete {
+  position: relative;
+  margin-bottom: 0.2rem;
+}
+
 .search-box {
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 0.2rem;
 }
 
 .search-icon {
@@ -777,6 +781,32 @@ body {
 .search-input:focus {
   border-color: var(--blue-500);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 1.5px solid var(--blue-200);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.15);
+  padding: 0.4rem 0.8rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.search-dropdown-empty {
+  font-size: 0.9rem;
+  color: var(--slate-500);
+  padding: 0.5rem 0;
+  text-align: center;
+}
+
+.search-dropdown .search-list {
+  margin: 0;
 }
 
 /* ================ Activity item ================ */

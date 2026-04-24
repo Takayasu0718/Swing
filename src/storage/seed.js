@@ -14,6 +14,13 @@ function daysAgo(d) {
   return new Date(Date.now() - d * 24 * 3600 * 1000).toISOString()
 }
 
+// Demo teams that must always exist so team search has something to show.
+const DEMO_TEAMS = [
+  { name: 'イースタンボーイズ', description: '東エリアの強豪チーム', captain: { nickname: 'だいき', avatarStamp: 'fire', dailyGoal: 150 } },
+  { name: '羽沢フォースターズ', description: '四つ星の意志で勝つ！', captain: { nickname: 'そうご', avatarStamp: 'star', dailyGoal: 100 } },
+  { name: 'ブルーフェニックス', description: '青い炎のチーム', captain: { nickname: 'れん', avatarStamp: 'crown', dailyGoal: 125 } },
+]
+
 // Sakuradai Sunbird roster — all 16 are friends of the current user AND teammates.
 const SUNBIRD_ROSTER = [
   { nickname: 'りくた', avatarStamp: 'fire', dailyGoal: 100 },
@@ -45,60 +52,9 @@ export function seedIfNeeded() {
   )
   const byName = Object.fromEntries(roster.map((u) => [u.nickname, u]))
 
-  // --- Demo team captains ---
-  const phoenixCaptain = users.create({
-    ...MOCK_FLAG,
-    nickname: 'れん',
-    avatarStamp: 'crown',
-    role: 'player',
-    dailyGoal: 125,
-  })
-  const easternCaptain = users.create({
-    ...MOCK_FLAG,
-    nickname: 'だいき',
-    avatarStamp: 'fire',
-    role: 'player',
-    dailyGoal: 150,
-  })
-  const hazawaCaptain = users.create({
-    ...MOCK_FLAG,
-    nickname: 'そうご',
-    avatarStamp: 'star',
-    role: 'player',
-    dailyGoal: 100,
-  })
-
-  // --- Demo teams (searchable/applyable) ---
-  teams.create({
-    mock: true,
-    name: 'イースタンボーイズ',
-    description: '東エリアの強豪チーム',
-    captainId: easternCaptain.id,
-    memberIds: [easternCaptain.id],
-    friendTeamIds: [],
-    nextMatch: null,
-    matches: [],
-  })
-  teams.create({
-    mock: true,
-    name: '羽沢フォースターズ',
-    description: '四つ星の意志で勝つ！',
-    captainId: hazawaCaptain.id,
-    memberIds: [hazawaCaptain.id],
-    friendTeamIds: [],
-    nextMatch: null,
-    matches: [],
-  })
-  const phoenixTeam = teams.create({
-    mock: true,
-    name: 'ブルーフェニックス',
-    description: '青い炎のチーム',
-    captainId: phoenixCaptain.id,
-    memberIds: [phoenixCaptain.id],
-    friendTeamIds: [],
-    nextMatch: null,
-    matches: [],
-  })
+  // --- Demo teams (searchable, applyable) ---
+  ensureDemoTeams()
+  const phoenixTeam = teams.list().find((t) => t.name === 'ブルーフェニックス')
 
   const myTeam = teams.create({
     mock: true,
@@ -205,7 +161,7 @@ export function seedIfNeeded() {
   notifications.create({
     userId: me.id,
     type: 'team_invite',
-    fromUserId: phoenixCaptain.id,
+    fromUserId: phoenixTeam.captainId,
     content: 'ブルーフェニックスからチーム招待が届きました',
     read: false,
     createdAt: hoursAgo(8),
@@ -226,4 +182,23 @@ export function seedIfNeeded() {
     read: true,
     createdAt: daysAgo(2),
   })
+}
+
+// Idempotent: run on every app load so existing users get newly defined demo teams
+// without needing to reset data. Skips teams that already exist by name.
+export function ensureDemoTeams() {
+  for (const demo of DEMO_TEAMS) {
+    if (teams.list().some((t) => t.name === demo.name)) continue
+    const captain = users.create({ ...MOCK_FLAG, role: 'player', ...demo.captain })
+    teams.create({
+      mock: true,
+      name: demo.name,
+      description: demo.description,
+      captainId: captain.id,
+      memberIds: [captain.id],
+      friendTeamIds: [],
+      nextMatch: null,
+      matches: [],
+    })
+  }
 }

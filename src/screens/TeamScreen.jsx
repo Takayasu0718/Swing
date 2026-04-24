@@ -9,6 +9,7 @@ import {
   sendTeamJoinRequest,
   sendFriendTeamRequest,
 } from '../lib/events.js'
+import { matchesJa } from '../lib/kana.js'
 
 export default function TeamScreen() {
   const me = users.getCurrent()
@@ -16,55 +17,71 @@ export default function TeamScreen() {
   const [editingTeam, setEditingTeam] = useState(false)
   const [addingMatch, setAddingMatch] = useState(false)
   const [chatInput, setChatInput] = useState('')
+  const [creatingTeam, setCreatingTeam] = useState(false)
   if (!me) return null
 
   const myTeam = teams.findByMember(me.id)
-  const q = query.trim().toLowerCase()
-  const searchResults = q
-    ? teams.list().filter((t) => t.name?.toLowerCase().includes(q))
-    : []
+  const q = query.trim()
+  const searchResults = q ? teams.list().filter((t) => matchesJa(t.name, q)) : []
 
   if (!myTeam) {
+    const dropdown = q && (
+      searchResults.length === 0 ? (
+        <div className="search-dropdown-empty">該当するチームがありません</div>
+      ) : (
+        <ul className="search-list">
+          {searchResults.map((t) => {
+            const outgoing = teamRequests.findOutgoingJoin(me.id, t.id)
+            return (
+              <li key={t.id} className="search-row">
+                <div className="search-info">
+                  <div className="activity-name">{t.name}</div>
+                  <div className="search-sub">{t.description}</div>
+                </div>
+                {outgoing ? (
+                  <span className="friend-tag">申請中</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="small-btn filled"
+                    onClick={() => sendTeamJoinRequest(t.id, me.id)}
+                  >
+                    加入申請
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )
+    )
     return (
       <div className="screen">
         <h1 className="screen-title">チーム</h1>
-        <SearchBox value={query} onChange={setQuery} placeholder="チームを検索" />
-        {q && (
-          <section className="info-card">
-            <div className="card-title">検索結果</div>
-            {searchResults.length === 0 ? (
-              <div className="empty-txt">該当するチームがありません</div>
-            ) : (
-              <ul className="search-list">
-                {searchResults.map((t) => {
-                  const outgoing = teamRequests.findOutgoingJoin(me.id, t.id)
-                  return (
-                    <li key={t.id} className="search-row">
-                      <div className="search-info">
-                        <div className="activity-name">{t.name}</div>
-                        <div className="search-sub">{t.description}</div>
-                      </div>
-                      {outgoing ? (
-                        <span className="friend-tag">申請中</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="small-btn filled"
-                          onClick={() => sendTeamJoinRequest(t.id, me.id)}
-                        >
-                          加入申請
-                        </button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </section>
-        )}
-        <section className="info-card">
-          <div className="empty-txt">まだチームに所属していません</div>
-        </section>
+        <SearchBox
+          value={query}
+          onChange={setQuery}
+          placeholder="チームを検索"
+          dropdown={dropdown}
+        />
+        <CreateTeamCard
+          userId={me.id}
+          creating={creatingTeam}
+          onStart={() => setCreatingTeam(true)}
+          onCancel={() => setCreatingTeam(false)}
+          onCreate={(payload) => {
+            teams.create({
+              name: payload.name,
+              description: payload.description,
+              captainId: me.id,
+              memberIds: [me.id],
+              friendTeamIds: [],
+              nextMatch: null,
+              matches: [],
+            })
+            setCreatingTeam(false)
+          }}
+        />
       </div>
     )
   }
@@ -89,64 +106,66 @@ export default function TeamScreen() {
     setChatInput('')
   }
 
+  const teamSearchDropdown = q && (
+    searchResults.length === 0 ? (
+      <div className="search-dropdown-empty">該当するチームがありません</div>
+    ) : (
+      <ul className="search-list">
+        {searchResults.map((t) => {
+          const joined = t.id === myTeam.id
+          const isFriendTeam = friendTeamIds.includes(t.id)
+          const outgoingJoin = !isCaptain ? teamRequests.findOutgoingJoin(me.id, t.id) : null
+          const outgoingFriend = isCaptain
+            ? teamRequests.findOutgoingFriendTeam(myTeam.id, t.id)
+            : null
+          return (
+            <li key={t.id} className="search-row">
+              <div className="search-info">
+                <div className="activity-name">{t.name}</div>
+                <div className="search-sub">{t.description}</div>
+              </div>
+              {joined ? (
+                <span className="friend-tag">所属中</span>
+              ) : isFriendTeam ? (
+                <span className="friend-tag">フレンドチーム</span>
+              ) : outgoingJoin ? (
+                <span className="friend-tag">申請中</span>
+              ) : outgoingFriend ? (
+                <span className="friend-tag">申請中</span>
+              ) : isCaptain ? (
+                <button
+                  type="button"
+                  className="small-btn filled"
+                  onClick={() => sendFriendTeamRequest(myTeam.id, t.id)}
+                >
+                  フレンドチーム申請
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="small-btn filled"
+                  onClick={() => sendTeamJoinRequest(t.id, me.id)}
+                >
+                  加入申請
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    )
+  )
+
   return (
     <div className="screen">
       <h1 className="screen-title">チーム</h1>
 
-      <SearchBox value={query} onChange={setQuery} placeholder="チームを検索" />
-
-      {q && (
-        <section className="info-card">
-          <div className="card-title">検索結果</div>
-          {searchResults.length === 0 ? (
-            <div className="empty-txt">該当するチームがありません</div>
-          ) : (
-            <ul className="search-list">
-              {searchResults.map((t) => {
-                const joined = t.id === myTeam.id
-                const isFriendTeam = friendTeamIds.includes(t.id)
-                const outgoingJoin = !isCaptain ? teamRequests.findOutgoingJoin(me.id, t.id) : null
-                const outgoingFriend = isCaptain
-                  ? teamRequests.findOutgoingFriendTeam(myTeam.id, t.id)
-                  : null
-                return (
-                  <li key={t.id} className="search-row">
-                    <div className="search-info">
-                      <div className="activity-name">{t.name}</div>
-                      <div className="search-sub">{t.description}</div>
-                    </div>
-                    {joined ? (
-                      <span className="friend-tag">所属中</span>
-                    ) : isFriendTeam ? (
-                      <span className="friend-tag">フレンドチーム</span>
-                    ) : outgoingJoin ? (
-                      <span className="friend-tag">申請中</span>
-                    ) : outgoingFriend ? (
-                      <span className="friend-tag">申請中</span>
-                    ) : isCaptain ? (
-                      <button
-                        type="button"
-                        className="small-btn filled"
-                        onClick={() => sendFriendTeamRequest(myTeam.id, t.id)}
-                      >
-                        フレンドチーム申請
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="small-btn filled"
-                        onClick={() => sendTeamJoinRequest(t.id, me.id)}
-                      >
-                        加入申請
-                      </button>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
-      )}
+      <SearchBox
+        value={query}
+        onChange={setQuery}
+        placeholder="チームを検索"
+        dropdown={teamSearchDropdown}
+      />
 
       <TeamInfoCard
         team={myTeam}
@@ -470,6 +489,69 @@ function TeamMatchesCard({ team, members, canEdit, adding, onStartAdd, onCancelA
           })}
         </ul>
       )}
+    </section>
+  )
+}
+
+function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+
+  const reset = () => {
+    setName('')
+    setDescription('')
+  }
+
+  if (!creating) {
+    return (
+      <section className="info-card">
+        <div className="card-title">新しいチームを作る</div>
+        <div className="empty-txt">キャプテンとしてチームを立ち上げましょう</div>
+        <button className="outline-btn" onClick={onStart}>
+          チームを作成する
+        </button>
+      </section>
+    )
+  }
+
+  const submit = () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    onCreate({ name: trimmed, description: description.trim() })
+    reset()
+  }
+
+  return (
+    <section className="info-card">
+      <div className="card-title">新しいチームを作る</div>
+      <label className="field">
+        <span className="field-label">チーム名 <span className="req">*</span></span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={30}
+          placeholder="例: スイングドラゴンズ"
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">チーム紹介文</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          maxLength={80}
+          placeholder="例: 毎日コツコツ素振りで強くなるチーム！"
+        />
+      </label>
+      <div className="btn-row">
+        <button className="outline-btn" onClick={() => { reset(); onCancel() }}>
+          キャンセル
+        </button>
+        <button className="submit" onClick={submit} disabled={!name.trim()}>
+          作成
+        </button>
+      </div>
     </section>
   )
 }

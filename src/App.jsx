@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { users, useStoreVersion } from './storage/storage.js'
-import { seedIfNeeded } from './storage/seed.js'
+import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -26,7 +26,10 @@ export default function App() {
   const activeTab = current ? tab : 'register'
 
   useEffect(() => {
-    if (current) seedIfNeeded()
+    if (current) {
+      seedIfNeeded()
+      ensureDemoTeams()
+    }
   }, [current])
 
   let screen

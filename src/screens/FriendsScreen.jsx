@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { users, friendships, teams, activities } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { sendFriendRequest } from '../lib/events.js'
+import { matchesJa } from '../lib/kana.js'
 import ActivityItem from '../components/ActivityItem.jsx'
 import SearchBox from '../components/SearchBox.jsx'
 
@@ -13,16 +14,14 @@ export default function FriendsScreen() {
   const friendIds = friendships.acceptedFriendIds(me.id)
   const friends = friendIds.map((id) => users.get(id)).filter(Boolean)
 
-  // Search across all non-self users by nickname or their team name
   const allTeams = teams.list()
-  const q = query.trim().toLowerCase()
+  const q = query.trim()
   const searchResults = q
     ? users.list().filter((u) => {
         if (u.id === me.id) return false
-        const nameMatch = u.nickname.toLowerCase().includes(q)
+        if (matchesJa(u.nickname, q)) return true
         const userTeam = allTeams.find((t) => t.memberIds?.includes(u.id))
-        const teamMatch = userTeam?.name?.toLowerCase().includes(q)
-        return nameMatch || teamMatch
+        return userTeam ? matchesJa(userTeam.name, q) : false
       })
     : []
 
@@ -32,60 +31,62 @@ export default function FriendsScreen() {
     activities.toggleLike(activityId, me.id)
   }
 
+  const dropdown = q && (
+    searchResults.length === 0 ? (
+      <div className="search-dropdown-empty">該当するユーザーがいません</div>
+    ) : (
+      <ul className="search-list">
+        {searchResults.map((u) => {
+          const isFriend = friendIds.includes(u.id)
+          const relation = friendships
+            .list()
+            .find(
+              (f) =>
+                (f.fromUserId === me.id && f.toUserId === u.id) ||
+                (f.fromUserId === u.id && f.toUserId === me.id),
+            )
+          const outgoingPending = relation?.status === 'pending' && relation.fromUserId === me.id
+          const incomingPending = relation?.status === 'pending' && relation.toUserId === me.id
+          const team = allTeams.find((t) => t.memberIds?.includes(u.id))
+          return (
+            <li key={u.id} className="search-row">
+              <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
+              <div className="search-info">
+                <div className="activity-name">{u.nickname}</div>
+                {team && <div className="search-sub">{team.name}</div>}
+              </div>
+              {isFriend ? (
+                <span className="friend-tag">フレンド</span>
+              ) : outgoingPending ? (
+                <span className="friend-tag">申請中</span>
+              ) : incomingPending ? (
+                <span className="friend-tag">承認待ち</span>
+              ) : (
+                <button
+                  type="button"
+                  className="small-btn filled"
+                  onClick={() => sendFriendRequest(me.id, u.id)}
+                >
+                  申請
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    )
+  )
+
   return (
     <div className="screen">
       <h1 className="screen-title">友達</h1>
 
-      <SearchBox value={query} onChange={setQuery} placeholder="名前やチーム名で検索" />
-
-      {q && (
-        <section className="info-card">
-          <div className="card-title">検索結果</div>
-          {searchResults.length === 0 ? (
-            <div className="empty-txt">該当するユーザーがいません</div>
-          ) : (
-            <ul className="search-list">
-              {searchResults.map((u) => {
-                const isFriend = friendIds.includes(u.id)
-                const relation = friendships
-                  .list()
-                  .find(
-                    (f) =>
-                      (f.fromUserId === me.id && f.toUserId === u.id) ||
-                      (f.fromUserId === u.id && f.toUserId === me.id),
-                  )
-                const outgoingPending = relation?.status === 'pending' && relation.fromUserId === me.id
-                const incomingPending = relation?.status === 'pending' && relation.toUserId === me.id
-                const team = allTeams.find((t) => t.memberIds?.includes(u.id))
-                return (
-                  <li key={u.id} className="search-row">
-                    <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
-                    <div className="search-info">
-                      <div className="activity-name">{u.nickname}</div>
-                      {team && <div className="search-sub">{team.name}</div>}
-                    </div>
-                    {isFriend ? (
-                      <span className="friend-tag">フレンド</span>
-                    ) : outgoingPending ? (
-                      <span className="friend-tag">申請中</span>
-                    ) : incomingPending ? (
-                      <span className="friend-tag">承認待ち</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="small-btn filled"
-                        onClick={() => sendFriendRequest(me.id, u.id)}
-                      >
-                        申請
-                      </button>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
-      )}
+      <SearchBox
+        value={query}
+        onChange={setQuery}
+        placeholder="名前やチーム名で検索"
+        dropdown={dropdown}
+      />
 
       <section className="info-card">
         <div className="card-title">フレンド（{friends.length}）</div>
