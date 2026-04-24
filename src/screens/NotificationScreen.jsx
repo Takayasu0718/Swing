@@ -21,6 +21,7 @@ const TYPE_ICON = {
   team_join_request: '🙋',
   friend_team_request: '🤝',
   goal_raised: '📈',
+  mvp_selected: '🏆',
 }
 
 // Request types that have a pending record and show accept/decline buttons.

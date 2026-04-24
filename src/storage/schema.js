@@ -159,6 +159,7 @@ export const NOTIFICATION_TYPES = Object.freeze([
   { key: 'team_join_request', label: 'チーム加入申請通知' },
   { key: 'friend_team_request', label: 'フレンドチーム申請通知' },
   { key: 'goal_raised', label: '目標回数アップ通知' },
+  { key: 'mvp_selected', label: 'MVP選出通知' },
 ])
 
 export const DEFAULT_NOTIFICATION_SETTINGS = Object.freeze(

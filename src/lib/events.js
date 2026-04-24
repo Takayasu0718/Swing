@@ -139,6 +139,19 @@ export function onMatchAdded(teamId, match) {
     content: `vs ${match.opponent} ${match.score} ${resultLabel}`,
     teamId,
   })
+
+  if (match.mvpPlayerId) {
+    const mvp = users.get(match.mvpPlayerId)
+    if (mvp) {
+      for (const rid of team.memberIds || []) {
+        notify(rid, {
+          type: 'mvp_selected',
+          fromUserId: match.mvpPlayerId,
+          content: `${mvp.nickname}さんが${match.opponent}戦のMVPに選ばれました！おめでとうございます！`,
+        })
+      }
+    }
+  }
 }
 
 // --- Friend request flow ---
