@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS } from '../storage/schema.js'
@@ -10,7 +11,46 @@ import ActivityItem from './ActivityItem.jsx'
 export default function ProfileModal() {
   const { viewUserId, closeProfile } = useProfile()
   const me = users.getCurrent()
-  if (!viewUserId || !me) return null
+  const modalRef = useRef(null)
+  const closeRef = useRef(null)
+  const open = Boolean(viewUserId)
+
+  useEffect(() => {
+    if (!open) return
+    const prevActive = document.activeElement
+    closeRef.current?.focus()
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        closeProfile()
+        return
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusables = modalRef.current.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        )
+        if (focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      if (prevActive instanceof HTMLElement) prevActive.focus()
+    }
+  }, [open, closeProfile])
+
+  if (!open || !me) return null
   const user = users.get(viewUserId)
   if (!user) return null
 
@@ -42,9 +82,16 @@ export default function ProfileModal() {
   const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
 
   return (
-    <div className="modal-overlay" onClick={closeProfile} role="dialog" aria-modal="true">
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={closeProfile} aria-label="閉じる">×</button>
+    <div className="modal-overlay" onClick={closeProfile}>
+      <div
+        className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${user.nickname}のプロフィール`}
+        ref={modalRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button ref={closeRef} className="modal-close" onClick={closeProfile} aria-label="閉じる">×</button>
 
         <div className="profile-hero">
           <span className="avatar-xxl" aria-hidden>{stamp.label}</span>

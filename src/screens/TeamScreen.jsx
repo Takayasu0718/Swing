@@ -12,6 +12,7 @@ import {
 import { matchesJa } from '../lib/kana.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
 import { useProfile } from '../hooks/useProfile.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 
 export default function TeamScreen() {
   const me = users.getCurrent()
@@ -67,6 +68,15 @@ export default function TeamScreen() {
           placeholder="チームを検索"
           dropdown={dropdown}
         />
+        {!creatingTeam && (
+          <section className="info-card">
+            <EmptyState
+              icon="⚾"
+              title="まだチームに所属していません"
+              description="チームを探して加入申請するか、自分のチームを立ち上げよう"
+            />
+          </section>
+        )}
         <CreateTeamCard
           userId={me.id}
           creating={creatingTeam}

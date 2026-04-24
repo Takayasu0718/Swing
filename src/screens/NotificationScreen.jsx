@@ -10,6 +10,7 @@ import {
   declineFriendTeamRequest,
 } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 
 const TYPE_ICON = {
   swing_complete: '⚾',
@@ -92,7 +93,11 @@ export default function NotificationScreen() {
 
       {items.length === 0 ? (
         <section className="info-card">
-          <div className="empty-txt">通知はありません</div>
+          <EmptyState
+            icon="🔔"
+            title="通知はありません"
+            description="フレンドの達成やお知らせがここに届きます"
+          />
         </section>
       ) : (
         <ul className="notif-list">

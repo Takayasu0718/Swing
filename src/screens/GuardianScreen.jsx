@@ -5,9 +5,11 @@ import { getStamp } from '../storage/stamps.js'
 import { computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
+import { useTheme } from '../hooks/useTheme.jsx'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
+  const { mode: themeMode, setMode: setThemeMode } = useTheme()
   const user = users.getCurrent()
   if (!user) return null
 
@@ -112,6 +114,29 @@ export default function GuardianScreen({ onNavigate }) {
               </button>
             )
           })}
+        </div>
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">テーマ</div>
+        <div className="theme-options" role="radiogroup" aria-label="テーマ">
+          {[
+            { k: 'light', label: 'ライト', icon: '☀️' },
+            { k: 'dark', label: 'ダーク', icon: '🌙' },
+            { k: 'system', label: 'システム', icon: '🖥️' },
+          ].map((opt) => (
+            <button
+              key={opt.k}
+              type="button"
+              role="radio"
+              aria-checked={themeMode === opt.k}
+              className={`theme-option ${themeMode === opt.k ? 'active' : ''}`}
+              onClick={() => setThemeMode(opt.k)}
+            >
+              <span className="theme-option-icon" aria-hidden>{opt.icon}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
         </div>
       </section>
 

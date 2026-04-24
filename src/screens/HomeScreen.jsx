@@ -87,7 +87,11 @@ export default function HomeScreen() {
             </span>
           </div>
           {completed ? (
-            <div className="mission-text success">達成！！素晴らしい！</div>
+            <div className="mission-text success">
+              <span className="celebrate" aria-hidden>🎉</span>
+              達成！！素晴らしい！
+              <span className="celebrate" aria-hidden>🎉</span>
+            </div>
           ) : (
             <>
               <div className="mission-text">{user.dailyGoal}回の素振りを達成しよう！</div>

@@ -5,6 +5,7 @@ import { sendFriendRequest } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
 import ActivityItem from '../components/ActivityItem.jsx'
 import SearchBox from '../components/SearchBox.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import { useProfile } from '../hooks/useProfile.jsx'
 
 export default function FriendsScreen() {
@@ -99,7 +100,11 @@ export default function FriendsScreen() {
       <section className="info-card">
         <div className="card-title">フレンド（{friends.length}）</div>
         {friends.length === 0 ? (
-          <div className="empty-txt">まだフレンドがいません</div>
+          <EmptyState
+            icon="👥"
+            title="まだフレンドがいません"
+            description="検索ボックスから名前やチーム名で探してみよう！"
+          />
         ) : (
           <ul className="friend-chips">
             {friends.map((f) => (
@@ -121,7 +126,11 @@ export default function FriendsScreen() {
       <section className="info-card">
         <div className="card-title">フレンドのアクティビティ</div>
         {feed.length === 0 ? (
-          <div className="empty-txt">フレンドのアクティビティはまだありません</div>
+          <EmptyState
+            icon="✨"
+            title="アクティビティはまだありません"
+            description="フレンドが素振りを達成するとここに表示されます"
+          />
         ) : (
           <div className="activity-list">
             {feed.map((a) => (
