@@ -969,20 +969,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.ghost-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.1rem;
-  color: var(--blue-600);
-  cursor: pointer;
-  padding: 0.2rem 0.4rem;
-  border-radius: 6px;
+.card-title-row > span:first-child {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
-.ghost-btn:hover {
-  background: var(--blue-50);
+.card-edit-btn {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0.3rem 0.9rem;
 }
 
 .team-desc {

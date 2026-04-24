@@ -250,7 +250,7 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
         <div className="card-title card-title-row">
           <span>{team.name}</span>
           {canEdit && (
-            <button className="ghost-btn" onClick={onStartEdit} aria-label="編集">✎</button>
+            <button type="button" className="small-btn card-edit-btn" onClick={onStartEdit}>編集</button>
           )}
         </div>
         {team.description && <div className="team-desc">{team.description}</div>}
@@ -350,7 +350,7 @@ function TeamMatchesCard({ team, members, canEdit, adding, onStartAdd, onCancelA
       <div className="card-title card-title-row">
         <span>試合結果</span>
         {canEdit && !adding && (
-          <button className="ghost-btn" onClick={onStartAdd} aria-label="追加">＋</button>
+          <button type="button" className="small-btn card-edit-btn" onClick={onStartAdd}>編集</button>
         )}
       </div>
 
