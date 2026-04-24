@@ -1500,8 +1500,30 @@ button.friend-chip:hover {
 }
 
 .tab-icon {
+  position: relative;
   font-size: 1.25rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-badge {
+  position: absolute;
+  top: -6px;
+  right: -12px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: var(--white);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 999px;
+  border: 2px solid var(--white);
+  box-sizing: content-box;
 }
 
 .tab-label {

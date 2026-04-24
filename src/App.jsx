@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { users, useStoreVersion } from './storage/storage.js'
+import { users, notifications, useStoreVersion } from './storage/storage.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
@@ -34,6 +34,15 @@ export default function App() {
     }
   }, [current])
 
+  const unreadCount = current ? notifications.unreadCount(current.id) : 0
+
+  const handleTabChange = (next) => {
+    if (next === 'notif' && current && unreadCount > 0) {
+      notifications.markAllRead(current.id)
+    }
+    setTab(next)
+  }
+
   let screen
   switch (activeTab) {
     case 'register':
@@ -62,7 +71,13 @@ export default function App() {
     <ProfileProvider>
       <div className="app-root">
         <div className="screen-container">{screen}</div>
-        <TabBar tabs={TABS} active={activeTab} onChange={setTab} locked={!current ? 'register' : null} />
+        <TabBar
+          tabs={TABS}
+          active={activeTab}
+          onChange={handleTabChange}
+          locked={!current ? 'register' : null}
+          badges={{ notif: unreadCount }}
+        />
         <ProfileModal />
       </div>
     </ProfileProvider>
