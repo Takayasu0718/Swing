@@ -14,7 +14,8 @@ import {
 } from '../storage/storage.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
 import { levelFromDays, stageIndex } from './dragon.js'
-import { countAchievementDays, computeStreak } from './date.js'
+import { countAchievementDays, computeStreak, todayKey } from './date.js'
+import { syncSwingActivity } from './firestoreSync.js'
 
 function notify(recipientId, data) {
   const s = settings.get(recipientId)
@@ -48,6 +49,9 @@ export function onMissionApproved(userId) {
     content: '今日の素振りミッションを達成！',
     teamId: team?.id ?? null,
   })
+
+  // Firestore: users/{uid}/activities に素振り達成を1件追記（best-effort、失敗してもUIには影響なし）
+  syncSwingActivity({ swingCount: user.dailyGoal ?? 0, date: todayKey() })
 
   // Self-notification は出さず、フレンド+チームメンバーに通知。
   for (const rid of socialRecipients(userId)) {

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { users, notifications, useStoreVersion } from './storage/storage.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
+import { ensureAnonymousAuth } from './lib/firebase.js'
+import { syncUserProfile } from './lib/firestoreSync.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -34,6 +36,19 @@ export default function App() {
       ensureDemoTeams()
     }
   }, [current])
+
+  // Firebase anon auth + initial profile push (one-shot at mount).
+  useEffect(() => {
+    let cancelled = false
+    ensureAnonymousAuth().then((uid) => {
+      if (cancelled || !uid) return
+      const me = users.getCurrent()
+      if (me) syncUserProfile(me)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const unreadCount = current ? notifications.unreadCount(current.id) : 0
 

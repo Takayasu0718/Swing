@@ -5,6 +5,7 @@ import { todayKey, computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays, daysUntilNextLevel, stageImage, stageLabel } from '../lib/dragon.js'
 import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
+import { auth } from '../lib/firebase.js'
 
 export default function HomeScreen() {
   const user = users.getCurrent()
@@ -35,9 +36,21 @@ export default function HomeScreen() {
   const childClaimed = !!todayMission?.childClaimed
   const completed = !!todayMission?.completed
 
-  const claimMission = () => missions.claim(user.id, today, user.dailyGoal)
+  const claimMission = () => {
+    console.log('[swing] button clicked', {
+      action: 'claim',
+      swingCount: user.dailyGoal,
+      uid: auth?.currentUser?.uid,
+    })
+    missions.claim(user.id, today, user.dailyGoal)
+  }
   const approveMission = () => {
     if (todayMission?.completed) return
+    console.log('[swing] button clicked', {
+      action: 'approve',
+      swingCount: user.dailyGoal,
+      uid: auth?.currentUser?.uid,
+    })
     missions.approve(user.id, today)
     onMissionApproved(user.id)
   }

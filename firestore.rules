@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 各ユーザーは自分自身のドキュメントだけ読み書き可能
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 自分の subcollection（activities, swings, missions など）も同じ条件で許可
+    // 1階層のサブコレクションを明示してデバッグしやすくする
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

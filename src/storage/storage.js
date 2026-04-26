@@ -3,6 +3,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { DEFAULT_NOTIFICATION_SETTINGS } from './schema.js'
+import { syncUserProfile, syncSwingRecord } from '../lib/firestoreSync.js'
 
 const VERSION = 'v1'
 const PREFIX = `swing-app:${VERSION}:`
@@ -110,6 +111,7 @@ export const users = {
     arr.push(u)
     saveUsers(arr)
     bump()
+    syncUserProfile(u)
     return u
   },
   update(id, patch) {
@@ -120,6 +122,7 @@ export const users = {
     arr[idx] = next
     saveUsers(arr)
     bump()
+    syncUserProfile(next)
     return next
   },
   remove(id) {
@@ -152,6 +155,7 @@ export const swings = {
     arr.push(rec)
     saveSwings(arr)
     bump()
+    syncSwingRecord(rec)
     return rec
   },
 }
