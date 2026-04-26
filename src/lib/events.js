@@ -49,12 +49,15 @@ export function onMissionApproved(userId) {
     teamId: team?.id ?? null,
   })
 
-  notify(userId, {
-    type: 'swing_complete',
-    fromUserId: null,
-    content: '今日の素振りミッションを達成しました！',
-    activityId: activity.id,
-  })
+  // Self-notification は出さず、フレンド+チームメンバーに通知。
+  for (const rid of socialRecipients(userId)) {
+    notify(rid, {
+      type: 'swing_complete',
+      fromUserId: userId,
+      content: `${user.nickname}さんが今日の素振りミッションを達成しました！`,
+      activityId: activity.id,
+    })
+  }
 
   // Streak milestone every 5 days (5/10/15/...) — notify self + friends + teammates.
   if (streak > 0 && streak % 5 === 0) {
@@ -80,28 +83,16 @@ export function onMissionApproved(userId) {
     }
   }
 
-  // Level up — self notification; extra celebration when stage changes.
+  // Level up — タイムラインへのアクティビティ投稿のみ（自分宛通知は出さない）
   if (levelAfter > levelBefore) {
-    const levelActivity = activities.create({
+    activities.create({
       userId,
       type: ACTIVITY_TYPES.LEVEL_UP,
-      content: `スイングドラゴンが Lv.${levelAfter} になった！`,
+      content: stageIndex(levelAfter) > stageIndex(levelBefore)
+        ? `ドラゴンが進化！ Lv.${levelAfter} になった！`
+        : `スイングドラゴンが Lv.${levelAfter} になった！`,
       teamId: team?.id ?? null,
     })
-    notify(userId, {
-      type: 'swing_complete',
-      fromUserId: null,
-      content: `ドラゴンが Lv.${levelAfter} にレベルアップ！`,
-      activityId: levelActivity.id,
-    })
-    if (stageIndex(levelAfter) > stageIndex(levelBefore)) {
-      notify(userId, {
-        type: 'swing_complete',
-        fromUserId: null,
-        content: 'ドラゴンが進化しました！',
-        activityId: levelActivity.id,
-      })
-    }
   }
 }
 
