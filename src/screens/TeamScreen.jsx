@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { users, teams, teamRequests, chats, activities } from '../storage/storage.js'
+import { users, teams, teamRequests, chats, activities, missions } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
 import SearchBox from '../components/SearchBox.jsx'
@@ -13,6 +13,29 @@ import { matchesJa } from '../lib/kana.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+
+function computeTeamRanking(members) {
+  const since = Date.now() - 7 * 24 * 3600 * 1000
+  return members
+    .map((m) => {
+      const userMissions = missions.listByUser(m.id).filter((x) => x.completed)
+      const last7Sum = userMissions.reduce((sum, mission) => {
+        const ts = mission.approvedAt
+          ? new Date(mission.approvedAt).getTime()
+          : mission.date
+            ? new Date(`${mission.date}T12:00:00`).getTime()
+            : 0
+        return ts >= since ? sum + (mission.goal || 0) : sum
+      }, 0)
+      return {
+        id: m.id,
+        nickname: m.nickname,
+        avatarStamp: m.avatarStamp,
+        totalSwing: last7Sum,
+      }
+    })
+    .sort((a, b) => b.totalSwing - a.totalSwing)
+}
 
 export default function TeamScreen() {
   const me = users.getCurrent()
@@ -214,6 +237,47 @@ export default function TeamScreen() {
           ))}
         </ul>
       </section>
+
+      {(() => {
+        const teamRanking = computeTeamRanking(members).slice(0, 10)
+        console.log('[team-ranking]', teamRanking)
+        const hasData = teamRanking.some((r) => r.totalSwing > 0)
+        return (
+          <section className="info-card">
+            <div className="card-title">チームランキング（直近7日 / 上位10名）</div>
+            {!hasData ? (
+              <EmptyState
+                icon="🏆"
+                title="まだランキングデータがありません"
+                description="チームメイトが素振りを達成するとここに反映されます"
+              />
+            ) : (
+              <ol className="ranking-list">
+                {teamRanking.map((r, i) => (
+                  <li
+                    key={r.id}
+                    className={`ranking-row ${r.id === me.id ? 'me' : ''}`}
+                  >
+                    <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
+                    <span className="activity-stamp small" aria-hidden>
+                      {getStamp(r.avatarStamp).label}
+                    </span>
+                    <span className="ranking-name">
+                      {r.nickname}
+                      {r.id === me.id && <span className="real-tag">あなた</span>}
+                      {r.id === myTeam.captainId && <span className="captain-tag">C</span>}
+                    </span>
+                    <span className="ranking-count">
+                      {r.totalSwing.toLocaleString()}
+                      <span className="stat-unit">回</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        )
+      })()}
 
       <section className="info-card">
         <div className="card-title">チームメイトのアクティビティ</div>

@@ -422,6 +422,66 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ================ Friend ranking ================ */
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ranking-row {
+  display: grid;
+  grid-template-columns: 32px 36px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px dashed var(--blue-100);
+}
+
+.ranking-row:last-child {
+  border-bottom: none;
+}
+
+.ranking-row.me {
+  background: var(--blue-50);
+  border-radius: 8px;
+  border-bottom: 1px dashed var(--blue-200);
+}
+
+.ranking-rank {
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--slate-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.ranking-rank.rank-1 { color: #d97706; font-size: 1.1rem; }
+.ranking-rank.rank-2 { color: #64748b; font-size: 1.05rem; }
+.ranking-rank.rank-3 { color: #b45309; font-size: 1.05rem; }
+
+.ranking-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-count {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--blue-700);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ================ Weekly chart ================ */
 .chart-grid {
   display: grid;
@@ -1244,6 +1304,19 @@ body {
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--blue-200);
+}
+
+.real-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--white);
+  background: #10b981;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
 }
 
 /* ================ Search list ================ */

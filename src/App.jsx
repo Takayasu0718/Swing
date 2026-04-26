@@ -15,6 +15,7 @@ import TabBar from './components/TabBar.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import { ProfileProvider } from './hooks/useProfile.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
+import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
 
 const TABS = [
   { key: 'register', label: '登録', icon: '👤' },
@@ -110,19 +111,21 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <ProfileProvider>
-        <div className="app-root">
-          <div className="screen-container" key={activeTab}>{screen}</div>
-          <TabBar
-            tabs={TABS}
-            active={activeTab}
-            onChange={handleTabChange}
-            locked={!current ? 'register' : null}
-            badges={{ notif: unreadCount }}
-          />
-          <ProfileModal />
-        </div>
-      </ProfileProvider>
+      <FirestoreFriendsProvider>
+        <ProfileProvider>
+          <div className="app-root">
+            <div className="screen-container" key={activeTab}>{screen}</div>
+            <TabBar
+              tabs={TABS}
+              active={activeTab}
+              onChange={handleTabChange}
+              locked={!current ? 'register' : null}
+              badges={{ notif: unreadCount }}
+            />
+            <ProfileModal />
+          </div>
+        </ProfileProvider>
+      </FirestoreFriendsProvider>
     </ThemeProvider>
   )
 }

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { users, missions, teams } from '../storage/storage.js'
 import { ROLES } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
@@ -6,6 +7,9 @@ import { levelFromDays, daysUntilNextLevel, stageImage, stageLabel } from '../li
 import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { loadFriendRanking } from '../lib/firestoreRanking.js'
+import EmptyState from '../components/EmptyState.jsx'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -91,6 +95,38 @@ function computeAnalytics(completedMissions) {
 export default function HomeScreen() {
   const user = users.getCurrent()
   const { openProfile } = useProfile()
+  const { myUid, friendships: fsFriendships, usersByUid } = useFirestoreFriends()
+  const [ranking, setRanking] = useState([])
+
+  const acceptedFriendUids = (fsFriendships || [])
+    .filter((f) => f.status === 'accepted')
+    .map((f) => f.participants?.find((p) => p !== myUid))
+    .filter(Boolean)
+
+  const uidsKey = myUid
+    ? [myUid, ...acceptedFriendUids].sort().join(',')
+    : ''
+
+  useEffect(() => {
+    if (!myUid) return
+    let cancelled = false
+    const uids = [myUid, ...acceptedFriendUids]
+    const profiles = { ...usersByUid }
+    if (user) {
+      profiles[myUid] = { nickname: user.nickname, avatarStamp: user.avatarStamp }
+    }
+    console.log('[ranking] friends', acceptedFriendUids)
+    loadFriendRanking(uids, profiles).then((result) => {
+      if (cancelled) return
+      console.log('[ranking] result', result)
+      setRanking(result)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uidsKey])
+
   if (!user) return null
 
   const isPlayer = user.role === ROLES.PLAYER
@@ -238,6 +274,41 @@ export default function HomeScreen() {
               </div>
             </div>
           </div>
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card">
+          <div className="card-title">友達ランキング（直近7日）</div>
+          {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
+            <EmptyState
+              icon="🏆"
+              title="まだランキングデータがありません"
+              description="フレンドが素振りを達成するとここに反映されます"
+            />
+          ) : (
+            <ol className="ranking-list">
+              {ranking.map((r, i) => (
+                <li
+                  key={r.uid}
+                  className={`ranking-row ${r.uid === myUid ? 'me' : ''}`}
+                >
+                  <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
+                  <span className="activity-stamp small" aria-hidden>
+                    {getStamp(r.avatarStamp).label}
+                  </span>
+                  <span className="ranking-name">
+                    {r.nickname}
+                    {r.uid === myUid && <span className="real-tag">あなた</span>}
+                  </span>
+                  <span className="ranking-count">
+                    {r.totalSwing.toLocaleString()}
+                    <span className="stat-unit">回</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
       )}
 
