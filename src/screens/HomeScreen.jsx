@@ -7,6 +7,87 @@ import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+
+function localDateKey(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// createdAt（approvedAt 由来）を優先、無ければ date フィールドにフォールバック。
+function missionDateKey(m) {
+  if (m.approvedAt) {
+    const d = new Date(m.approvedAt)
+    if (!Number.isNaN(d.getTime())) return localDateKey(d)
+  }
+  return m.date
+}
+
+function computeWeeklyData(completedMissions) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  // 直近7日分（左=6日前、右=今日）の slot を作成
+  const slots = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    slots.push({
+      date: localDateKey(d),
+      label: WEEKDAYS[d.getDay()],
+      day: d.getDate(),
+      count: 0,
+      isToday: i === 0,
+    })
+  }
+  // 同じ日の記録は加算
+  for (const m of completedMissions) {
+    const k = missionDateKey(m)
+    const slot = slots.find((s) => s.date === k)
+    if (slot) slot.count += m.goal ?? 0
+  }
+  return slots
+}
+
+function computeLongestStreak(completedMissions) {
+  const dayMs = 24 * 3600 * 1000
+  const uniqueDates = Array.from(new Set(completedMissions.map((m) => m.date).filter(Boolean))).sort()
+  let max = 0
+  let cur = 0
+  let prevTs = null
+  for (const d of uniqueDates) {
+    const ts = new Date(`${d}T00:00:00`).getTime()
+    if (prevTs !== null && Math.round((ts - prevTs) / dayMs) === 1) {
+      cur += 1
+    } else {
+      cur = 1
+    }
+    if (cur > max) max = cur
+    prevTs = ts
+  }
+  return max
+}
+
+function computeAnalytics(completedMissions) {
+  const nowMs = Date.now()
+  const dayMs = 24 * 3600 * 1000
+  const within = (m, days) => {
+    const ts = m.approvedAt
+      ? new Date(m.approvedAt).getTime()
+      : m.date
+        ? new Date(`${m.date}T00:00:00`).getTime()
+        : 0
+    return Number.isFinite(ts) && nowMs - ts <= days * dayMs
+  }
+  const sumGoal = (arr) => arr.reduce((s, m) => s + (m.goal || 0), 0)
+  const last7Sum = sumGoal(completedMissions.filter((m) => within(m, 7)))
+  const last30Sum = sumGoal(completedMissions.filter((m) => within(m, 30)))
+  const totalSwings = sumGoal(completedMissions)
+  const longestStreak = computeLongestStreak(completedMissions)
+  return { last7Sum, last30Sum, totalSwings, longestStreak }
+}
+
 export default function HomeScreen() {
   const user = users.getCurrent()
   const { openProfile } = useProfile()
@@ -20,6 +101,32 @@ export default function HomeScreen() {
   const achievementDays = countAchievementDays(myMissions)
   const level = levelFromDays(achievementDays)
   const daysToNext = daysUntilNextLevel(achievementDays)
+
+  const completedMissions = myMissions.filter((m) => m.completed)
+  const todaySwingCount = completedMissions.find((m) => m.date === todayKey())?.goal ?? 0
+  const totalSwingCount = completedMissions.reduce((sum, m) => sum + (m.goal ?? 0), 0)
+
+  if (isPlayer) {
+    console.log('[analytics] source missions', completedMissions)
+  }
+
+  const analytics = computeAnalytics(completedMissions)
+  const weeklyData = computeWeeklyData(completedMissions)
+  const weeklyMax = Math.max(...weeklyData.map((d) => d.count), 0)
+  const weeklyHasData = weeklyMax > 0
+
+  if (isPlayer) {
+    console.log('[chart] weekly data', weeklyData)
+  }
+
+  if (isPlayer) {
+    console.log('[analytics]', {
+      last7Sum: analytics.last7Sum,
+      last30Sum: analytics.last30Sum,
+      totalSwings: analytics.totalSwings,
+      longestStreak: analytics.longestStreak,
+    })
+  }
 
   const coachAdvice = users
     .list()
@@ -69,6 +176,98 @@ export default function HomeScreen() {
         <section className="streak-card">
           <div className="streak-num">{streak}</div>
           <div className="streak-txt">日連続達成中！！</div>
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card stats-row">
+          <div className="stat-cell">
+            <div className="stat-label">今日</div>
+            <div className="stat-value">
+              {todaySwingCount.toLocaleString()}
+              <span className="stat-unit">回</span>
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">累計</div>
+            <div className="stat-value">
+              {totalSwingCount.toLocaleString()}
+              <span className="stat-unit">回</span>
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">連続達成</div>
+            <div className="stat-value">
+              {streak}
+              <span className="stat-unit">日</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card">
+          <div className="card-title">分析</div>
+          <div className="analytics-grid">
+            <div className="analytics-cell">
+              <div className="analytics-label">直近7日</div>
+              <div className="analytics-value">
+                {analytics.last7Sum.toLocaleString()}
+                <span className="stat-unit">回</span>
+              </div>
+            </div>
+            <div className="analytics-cell">
+              <div className="analytics-label">直近30日</div>
+              <div className="analytics-value">
+                {analytics.last30Sum.toLocaleString()}
+                <span className="stat-unit">回</span>
+              </div>
+            </div>
+            <div className="analytics-cell">
+              <div className="analytics-label">過去累積</div>
+              <div className="analytics-value">
+                {analytics.totalSwings.toLocaleString()}
+                <span className="stat-unit">回</span>
+              </div>
+            </div>
+            <div className="analytics-cell">
+              <div className="analytics-label">最長連続達成</div>
+              <div className="analytics-value">
+                {analytics.longestStreak}
+                <span className="stat-unit">日</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card">
+          <div className="card-title">直近7日間の素振り</div>
+          {!weeklyHasData ? (
+            <div className="empty-txt">まだ記録がありません</div>
+          ) : (
+            <div className="chart-grid" role="img" aria-label="直近7日間の素振り回数">
+              {weeklyData.map((d) => {
+                const ratio = weeklyMax > 0 ? d.count / weeklyMax : 0
+                return (
+                  <div key={d.date} className={`chart-bar-cell ${d.isToday ? 'today' : ''}`}>
+                    <div className="chart-bar-value">{d.count > 0 ? d.count : ''}</div>
+                    <div className="chart-bar-track">
+                      <div
+                        className="chart-bar-fill"
+                        style={{ height: `${Math.max(ratio * 100, d.count > 0 ? 6 : 0)}%` }}
+                      />
+                    </div>
+                    <div className="chart-bar-label">
+                      <div className="chart-bar-day">{d.day}</div>
+                      <div className="chart-bar-wd">{d.label}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </section>
       )}
 

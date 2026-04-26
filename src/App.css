@@ -360,6 +360,146 @@ body {
   box-shadow: var(--shadow);
 }
 
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.85rem 0.6rem;
+}
+
+.stat-cell {
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--slate-500);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--blue-700);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.stat-unit {
+  font-size: 0.7rem;
+  color: var(--slate-500);
+  font-weight: 600;
+  margin-left: 0.15em;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem 1rem;
+}
+
+.analytics-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--blue-50);
+  border-radius: 10px;
+}
+
+.analytics-label {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  font-weight: 600;
+}
+
+.analytics-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--blue-700);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================ Weekly chart ================ */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+  align-items: stretch;
+  height: 160px;
+}
+
+.chart-bar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.chart-bar-value {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--blue-700);
+  font-variant-numeric: tabular-nums;
+  height: 1em;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+  min-height: 1em;
+}
+
+.chart-bar-track {
+  flex: 1;
+  width: 100%;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  min-height: 6px;
+}
+
+.chart-bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, var(--blue-600), var(--blue-400));
+  border-radius: 5px 5px 0 0;
+  transition: height 0.4s ease-out;
+}
+
+.chart-bar-cell.today .chart-bar-fill {
+  background: linear-gradient(to top, #f97316, #fbbf24);
+}
+
+.chart-bar-cell.today .chart-bar-value {
+  color: #c2410c;
+}
+
+.chart-bar-label {
+  margin-top: 0.3rem;
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+.chart-bar-day {
+  font-weight: 700;
+  color: var(--slate-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-bar-wd {
+  font-size: 0.62rem;
+  color: var(--slate-500);
+  margin-top: 0.05rem;
+}
+
+.chart-bar-cell.today .chart-bar-day {
+  color: #c2410c;
+}
+
 .streak-num {
   font-size: 2.5rem;
   font-weight: 900;

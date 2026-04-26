@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { users, notifications, useStoreVersion } from './storage/storage.js'
+import { users, notifications, missions, useStoreVersion } from './storage/storage.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import { ensureAnonymousAuth } from './lib/firebase.js'
 import { syncUserProfile } from './lib/firestoreSync.js'
+import { loadSwingActivities } from './lib/firestoreLoad.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -37,13 +38,37 @@ export default function App() {
     }
   }, [current])
 
-  // Firebase anon auth + initial profile push (one-shot at mount).
+  // Firebase anon auth + initial profile push + activities load (one-shot at mount).
   useEffect(() => {
     let cancelled = false
-    ensureAnonymousAuth().then((uid) => {
+    ensureAnonymousAuth().then(async (uid) => {
       if (cancelled || !uid) return
       const me = users.getCurrent()
-      if (me) syncUserProfile(me)
+      if (!me) return
+      syncUserProfile(me)
+      const list = await loadSwingActivities()
+      if (cancelled || !list) return
+      const records = list.map((a) => {
+        // createdAt が Firebase Timestamp なら toDate() で ISO 文字列に変換。
+        // 取得不能なら date フィールド ("YYYY-MM-DD") を 12:00 に解釈してフォールバック。
+        let ts = null
+        if (a.createdAt && typeof a.createdAt.toDate === 'function') {
+          ts = a.createdAt.toDate().toISOString()
+        } else if (a.date) {
+          ts = new Date(`${a.date}T12:00:00`).toISOString()
+        }
+        return {
+          userId: me.id,
+          date: a.date,
+          goal: Number.isFinite(a.swingCount) ? a.swingCount : 0,
+          childClaimed: true,
+          claimedAt: ts,
+          completed: true,
+          approvedAt: ts,
+        }
+      })
+      console.log('[Firestore] converted missions', records)
+      missions.upsertMany(records)
     })
     return () => {
       cancelled = true

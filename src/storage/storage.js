@@ -208,6 +208,38 @@ export const missions = {
   approve(userId, date) {
     return missions.upsert({ userId, date, completed: true, approvedAt: now() })
   },
+  // Bulk upsert (one save + one bump). Each record needs at least { userId, date }.
+  upsertMany(records) {
+    if (!records || records.length === 0) return
+    const arr = loadMissions()
+    let changed = false
+    for (const data of records) {
+      const id = missionId(data.userId, data.date)
+      const idx = arr.findIndex((m) => m.id === id)
+      const prev = idx === -1 ? null : arr[idx]
+      const next = {
+        id,
+        userId: data.userId,
+        date: data.date,
+        goal: data.goal ?? prev?.goal ?? 0,
+        childClaimed: data.childClaimed ?? prev?.childClaimed ?? false,
+        claimedAt: data.claimedAt ?? prev?.claimedAt ?? null,
+        completed: data.completed ?? prev?.completed ?? false,
+        approvedAt: data.approvedAt ?? prev?.approvedAt ?? null,
+      }
+      if (idx === -1) {
+        arr.push(next)
+        changed = true
+      } else if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        arr[idx] = next
+        changed = true
+      }
+    }
+    if (changed) {
+      saveMissions(arr)
+      bump()
+    }
+  },
 }
 
 // ============ generic collections for later phases ============

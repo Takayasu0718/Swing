@@ -60,16 +60,17 @@ export async function syncSwingActivity({ swingCount, date }) {
     return
   }
   const path = `users/${uid}/activities`
-  console.log('[firestoreSync] writing to', path)
   const dateKey = date || new Date().toISOString().slice(0, 10)
+  const payload = {
+    type: 'swing',
+    swingCount,
+    date: dateKey,
+    createdAt: serverTimestamp(),
+  }
+  console.log('[firestoreSync] writing to', path, payload)
   try {
-    await addDoc(collection(db, 'users', uid, 'activities'), {
-      type: 'swing',
-      swingCount,
-      date: dateKey,
-      createdAt: serverTimestamp(),
-    })
-    console.log('[Firestore] activity saved')
+    await addDoc(collection(db, 'users', uid, 'activities'), payload)
+    console.log('[Firestore] activity saved', { path, swingCount, date: dateKey })
   } catch (e) {
     console.error('[firestoreSync] activity write failed', e)
   }
