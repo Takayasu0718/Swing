@@ -17,6 +17,7 @@ import ProfileModal from './components/ProfileModal.jsx'
 import { ProfileProvider } from './hooks/useProfile.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
+import { FirestoreTeamsProvider } from './hooks/useFirestoreTeams.jsx'
 
 const TABS = [
   { key: 'register', label: '登録', icon: '👤' },
@@ -121,6 +122,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <FirestoreFriendsProvider>
+        <FirestoreTeamsProvider>
         <ProfileProvider>
           <div className="app-root">
             <div className="screen-container" key={activeTab}>{screen}</div>
@@ -134,6 +136,7 @@ export default function App() {
             <ProfileModal />
           </div>
         </ProfileProvider>
+        </FirestoreTeamsProvider>
       </FirestoreFriendsProvider>
     </ThemeProvider>
   )

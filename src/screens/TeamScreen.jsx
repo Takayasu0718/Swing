@@ -13,6 +13,19 @@ import { matchesJa } from '../lib/kana.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import {
+  createFsTeam,
+  addFsMatch,
+  updateFsTeam,
+} from '../lib/firestoreTeams.js'
+import {
+  sendFsJoinRequest,
+  sendFsFriendTeamRequest,
+  acceptFsTeamRequest,
+  declineFsTeamRequest,
+} from '../lib/firestoreTeamRequests.js'
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -40,6 +53,15 @@ function computeTeamRanking(members) {
 export default function TeamScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
+  const {
+    myUid,
+    myFsTeam,
+    allFsTeams,
+    incomingRequests,
+    outgoingRequests,
+    refreshAllTeams,
+  } = useFirestoreTeams()
+  const { allUsers } = useFirestoreFriends()
   const [query, setQuery] = useState('')
   const [editingTeam, setEditingTeam] = useState(false)
   const [editingMatchId, setEditingMatchId] = useState(null)
@@ -47,17 +69,50 @@ export default function TeamScreen() {
   const [creatingTeam, setCreatingTeam] = useState(false)
   if (!me) return null
 
-  const myTeam = teams.findByMember(me.id)
+  // Firestore team が存在すればそれを優先、なければ localStorage（mock 用）にフォールバック
+  const localTeam = teams.findByMember(me.id)
+  const myTeam = myFsTeam || localTeam
+  const isFsTeam = !!myFsTeam
+  const myMemberId = isFsTeam ? myUid : me.id
+
   const q = query.trim()
-  const searchResults = q ? teams.list().filter((t) => matchesJa(t.name, q)) : []
+  const localSearchResults = q ? teams.list().filter((t) => matchesJa(t.name, q)) : []
+  const fsSearchResults = q ? allFsTeams.filter((t) => matchesJa(t.name || '', q)) : []
 
   if (!myTeam) {
     const dropdown = q && (
-      searchResults.length === 0 ? (
+      (fsSearchResults.length === 0 && localSearchResults.length === 0) ? (
         <div className="search-dropdown-empty">該当するチームがありません</div>
       ) : (
         <ul className="search-list">
-          {searchResults.map((t) => {
+          {fsSearchResults.map((t) => {
+            const outgoing = outgoingRequests.find(
+              (r) => r.kind === 'join' && r.teamId === t.id,
+            )
+            return (
+              <li key={`fs-${t.id}`} className="search-row">
+                <div className="search-info">
+                  <div className="activity-name">
+                    {t.name}
+                    <span className="real-tag">実チーム</span>
+                  </div>
+                  <div className="search-sub">{t.description}</div>
+                </div>
+                {outgoing ? (
+                  <span className="friend-tag">申請中</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="small-btn filled"
+                    onClick={() => sendFsJoinRequest(t.id)}
+                  >
+                    加入申請
+                  </button>
+                )}
+              </li>
+            )
+          })}
+          {localSearchResults.map((t) => {
             const outgoing = teamRequests.findOutgoingJoin(me.id, t.id)
             return (
               <li key={t.id} className="search-row">
@@ -105,16 +160,22 @@ export default function TeamScreen() {
           creating={creatingTeam}
           onStart={() => setCreatingTeam(true)}
           onCancel={() => setCreatingTeam(false)}
-          onCreate={(payload) => {
-            teams.create({
-              name: payload.name,
-              description: payload.description,
-              captainId: me.id,
-              memberIds: [me.id],
-              friendTeamIds: [],
-              nextMatch: null,
-              matches: [],
-            })
+          onCreate={async (payload) => {
+            // Firestore に作成（認証済みなら）。失敗時 / 未認証時は localStorage にフォールバック
+            const newId = await createFsTeam({ name: payload.name, description: payload.description })
+            if (newId) {
+              await refreshAllTeams()
+            } else {
+              teams.create({
+                name: payload.name,
+                description: payload.description,
+                captainId: me.id,
+                memberIds: [me.id],
+                friendTeamIds: [],
+                nextMatch: null,
+                matches: [],
+              })
+            }
             setCreatingTeam(false)
           }}
         />
@@ -122,10 +183,18 @@ export default function TeamScreen() {
     )
   }
 
-  const isCaptain = myTeam.captainId === me.id
+  const isCaptain = myTeam.captainId === myMemberId
   // MVPでは全員編集可。将来的に権限管理を戻す場合は isCaptain に差し替える。
   const canEdit = true
-  const members = (myTeam.memberIds || []).map((id) => users.get(id)).filter(Boolean)
+  // FS team のメンバーは uid なので allUsers から名前を解決。local team は users.get で従来通り。
+  const lookupMember = (id) => {
+    if (isFsTeam) {
+      const u = allUsers.find((x) => x.uid === id)
+      return u ? { id: u.uid, nickname: u.nickname, avatarStamp: u.avatarStamp } : null
+    }
+    return users.get(id)
+  }
+  const members = (myTeam.memberIds || []).map(lookupMember).filter(Boolean)
   const friendTeamIds = myTeam.friendTeamIds || []
   const friendTeamActivities = friendTeamIds.flatMap((fid) => activities.listByTeam(fid))
   const friendTeams = friendTeamIds.map((fid) => teams.get(fid)).filter(Boolean)
@@ -146,11 +215,59 @@ export default function TeamScreen() {
   }
 
   const teamSearchDropdown = q && (
-    searchResults.length === 0 ? (
+    (fsSearchResults.length === 0 && localSearchResults.length === 0) ? (
       <div className="search-dropdown-empty">該当するチームがありません</div>
     ) : (
       <ul className="search-list">
-        {searchResults.map((t) => {
+        {fsSearchResults.map((t) => {
+          const joined = t.id === myTeam.id
+          const isFriendTeam = friendTeamIds.includes(t.id)
+          const outgoingJoin = outgoingRequests.find(
+            (r) => r.kind === 'join' && r.teamId === t.id,
+          )
+          const outgoingFriend = isCaptain && isFsTeam
+            ? outgoingRequests.find(
+                (r) => r.kind === 'friend_team' && r.teamId === t.id && r.fromTeamId === myTeam.id,
+              )
+            : null
+          return (
+            <li key={`fs-${t.id}`} className="search-row">
+              <div className="search-info">
+                <div className="activity-name">
+                  {t.name}
+                  <span className="real-tag">実チーム</span>
+                </div>
+                <div className="search-sub">{t.description}</div>
+              </div>
+              {joined ? (
+                <span className="friend-tag">所属中</span>
+              ) : isFriendTeam ? (
+                <span className="friend-tag">フレンドチーム</span>
+              ) : outgoingJoin ? (
+                <span className="friend-tag">申請中</span>
+              ) : outgoingFriend ? (
+                <span className="friend-tag">申請中</span>
+              ) : isCaptain && isFsTeam ? (
+                <button
+                  type="button"
+                  className="small-btn filled"
+                  onClick={() => sendFsFriendTeamRequest(myTeam.id, t.id)}
+                >
+                  フレンドチーム申請
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="small-btn filled"
+                  onClick={() => sendFsJoinRequest(t.id)}
+                >
+                  加入申請
+                </button>
+              )}
+            </li>
+          )
+        })}
+        {localSearchResults.map((t) => {
           const joined = t.id === myTeam.id
           const isFriendTeam = friendTeamIds.includes(t.id)
           const outgoingJoin = !isCaptain ? teamRequests.findOutgoingJoin(me.id, t.id) : null
@@ -171,7 +288,7 @@ export default function TeamScreen() {
                 <span className="friend-tag">申請中</span>
               ) : outgoingFriend ? (
                 <span className="friend-tag">申請中</span>
-              ) : isCaptain ? (
+              ) : isCaptain && !isFsTeam ? (
                 <button
                   type="button"
                   className="small-btn filled"
@@ -214,10 +331,57 @@ export default function TeamScreen() {
         onStartEdit={() => setEditingTeam(true)}
         onCancelEdit={() => setEditingTeam(false)}
         onSave={(patch) => {
-          teams.update(myTeam.id, patch)
+          if (isFsTeam) {
+            updateFsTeam(myTeam.id, patch)
+          } else {
+            teams.update(myTeam.id, patch)
+          }
           setEditingTeam(false)
         }}
       />
+
+      {isFsTeam && isCaptain && incomingRequests.length > 0 && (
+        <section className="info-card">
+          <div className="card-title">チーム宛の申請（{incomingRequests.length}）</div>
+          <ul className="search-list">
+            {incomingRequests.map((req) => {
+              const fromUser = allUsers.find((u) => u.uid === req.fromUid)
+              const label = req.kind === 'join' ? '加入申請' : 'フレンドチーム申請'
+              return (
+                <li key={req.id} className="search-row">
+                  <div className="row-link">
+                    <span className="activity-stamp" aria-hidden>
+                      {getStamp(fromUser?.avatarStamp).label}
+                    </span>
+                    <div className="search-info">
+                      <div className="activity-name">
+                        {fromUser?.nickname ?? req.fromUid.slice(0, 6)}
+                      </div>
+                      <div className="search-sub">{label}</div>
+                    </div>
+                  </div>
+                  <div className="notif-actions">
+                    <button
+                      type="button"
+                      className="small-btn filled"
+                      onClick={() => acceptFsTeamRequest(req.id)}
+                    >
+                      承認
+                    </button>
+                    <button
+                      type="button"
+                      className="small-btn"
+                      onClick={() => declineFsTeamRequest(req.id)}
+                    >
+                      拒否
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="info-card">
         <div className="card-title">メンバー（{members.length}）</div>
@@ -380,12 +544,21 @@ export default function TeamScreen() {
         onStartEdit={(id) => setEditingMatchId(id)}
         onCancel={() => setEditingMatchId(null)}
         onAdd={(match) => {
-          teams.addMatch(myTeam.id, match)
-          onMatchAdded(myTeam.id, match)
+          if (isFsTeam) {
+            addFsMatch(myTeam.id, match)
+          } else {
+            teams.addMatch(myTeam.id, match)
+            onMatchAdded(myTeam.id, match)
+          }
           setEditingMatchId(null)
         }}
         onUpdate={(matchId, match) => {
-          teams.updateMatch(myTeam.id, matchId, match)
+          if (isFsTeam) {
+            const next = (myTeam.matches || []).map((m) => (m.id === matchId ? { ...m, ...match } : m))
+            updateFsTeam(myTeam.id, { matches: next })
+          } else {
+            teams.updateMatch(myTeam.id, matchId, match)
+          }
           setEditingMatchId(null)
         }}
       />
