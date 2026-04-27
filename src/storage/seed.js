@@ -1,10 +1,18 @@
 // Seeds mock data once per device so friends / team / notification screens
 // have something to display in B-mode (no backend). Idempotent: re-running is a no-op.
+// Disabled when VITE_SEED_DEMO_DATA=false (production deploys).
 
 import { users, teams, friendships, activities, chats, notifications } from './storage.js'
 import { ACTIVITY_TYPES } from './schema.js'
 
 const MOCK_FLAG = { mock: true }
+
+// Default: enabled. Set VITE_SEED_DEMO_DATA=false in .env.local to disable.
+function demoSeedEnabled() {
+  const v = import.meta.env.VITE_SEED_DEMO_DATA
+  if (v === undefined || v === null) return true
+  return String(v).toLowerCase() !== 'false'
+}
 
 function hoursAgo(h) {
   return new Date(Date.now() - h * 3600 * 1000).toISOString()
@@ -42,6 +50,7 @@ const SUNBIRD_ROSTER = [
 ]
 
 export function seedIfNeeded() {
+  if (!demoSeedEnabled()) return
   const me = users.getCurrent()
   if (!me) return
   if (users.list().some((u) => u.mock)) return
@@ -186,7 +195,9 @@ export function seedIfNeeded() {
 
 // Idempotent: run on every app load so existing users get newly defined demo teams
 // without needing to reset data. Skips teams that already exist by name.
+// Disabled when VITE_SEED_DEMO_DATA=false.
 export function ensureDemoTeams() {
+  if (!demoSeedEnabled()) return
   for (const demo of DEMO_TEAMS) {
     if (teams.list().some((t) => t.name === demo.name)) continue
     const captain = users.create({ ...MOCK_FLAG, role: 'player', ...demo.captain })
