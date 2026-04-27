@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { users, missions, teams } from '../storage/storage.js'
+import { users, missions, teams, settings } from '../storage/storage.js'
 import { ROLES } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays } from '../lib/date.js'
@@ -95,37 +95,34 @@ function computeAnalytics(completedMissions) {
 export default function HomeScreen() {
   const user = users.getCurrent()
   const { openProfile } = useProfile()
-  const { myUid, friendships: fsFriendships, usersByUid } = useFirestoreFriends()
+  const { myUid, allUsers } = useFirestoreFriends()
   const [ranking, setRanking] = useState([])
 
-  const acceptedFriendUids = (fsFriendships || [])
-    .filter((f) => f.status === 'accepted')
-    .map((f) => f.participants?.find((p) => p !== myUid))
-    .filter(Boolean)
+  const showAllUserRanking = user
+    ? settings.get(user.id).display?.showAllUserRanking !== false
+    : false
 
-  const uidsKey = myUid
-    ? [myUid, ...acceptedFriendUids].sort().join(',')
-    : ''
+  const allUserUids = (allUsers || []).map((u) => u.uid).filter(Boolean)
+  const allUidsKey = allUserUids.sort().join(',')
 
   useEffect(() => {
-    if (!myUid) return
+    if (!myUid || allUserUids.length === 0) return
     let cancelled = false
-    const uids = [myUid, ...acceptedFriendUids]
-    const profiles = { ...usersByUid }
-    if (user) {
-      profiles[myUid] = { nickname: user.nickname, avatarStamp: user.avatarStamp }
-    }
-    console.log('[ranking] friends', acceptedFriendUids)
-    loadFriendRanking(uids, profiles).then((result) => {
+    const profiles = {}
+    for (const u of allUsers) profiles[u.uid] = { nickname: u.nickname, avatarStamp: u.avatarStamp }
+    if (user) profiles[myUid] = { nickname: user.nickname, avatarStamp: user.avatarStamp }
+    console.log('[ranking] all users', allUserUids)
+    loadFriendRanking(allUserUids, profiles).then((result) => {
       if (cancelled) return
-      console.log('[ranking] result', result)
-      setRanking(result)
+      const top10 = result.slice(0, 10)
+      console.log('[ranking] result', top10)
+      setRanking(top10)
     })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uidsKey])
+  }, [myUid, allUidsKey])
 
   if (!user) return null
 
@@ -277,14 +274,14 @@ export default function HomeScreen() {
         </section>
       )}
 
-      {isPlayer && (
+      {isPlayer && showAllUserRanking && (
         <section className="info-card">
-          <div className="card-title">友達ランキング（直近7日）</div>
+          <div className="card-title">全ユーザーランキング（直近7日 / 上位10名）</div>
           {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
             <EmptyState
               icon="🏆"
               title="まだランキングデータがありません"
-              description="フレンドが素振りを達成するとここに反映されます"
+              description="ユーザーが素振りを達成するとここに反映されます"
             />
           ) : (
             <ol className="ranking-list">

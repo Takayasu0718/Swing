@@ -2,7 +2,7 @@
 // API is shaped like Firestore collections so swap-in is a mechanical change later.
 
 import { useSyncExternalStore } from 'react'
-import { DEFAULT_NOTIFICATION_SETTINGS } from './schema.js'
+import { DEFAULT_NOTIFICATION_SETTINGS, DEFAULT_DISPLAY_SETTINGS } from './schema.js'
 import { syncUserProfile, syncSwingRecord } from '../lib/firestoreSync.js'
 
 const VERSION = 'v1'
@@ -548,20 +548,41 @@ function saveSettingsAll(arr) {
   write(KEYS.settings, arr)
 }
 
+function fillDefaults(record, userId) {
+  return {
+    userId,
+    ...record,
+    notifications: { ...DEFAULT_NOTIFICATION_SETTINGS, ...(record?.notifications || {}) },
+    display: { ...DEFAULT_DISPLAY_SETTINGS, ...(record?.display || {}) },
+  }
+}
+
 export const settings = {
   get(userId) {
     const existing = loadSettingsAll().find((s) => s.userId === userId)
-    return existing || { userId, notifications: { ...DEFAULT_NOTIFICATION_SETTINGS } }
+    return fillDefaults(existing, userId)
   },
   setNotification(userId, key, value) {
     const arr = loadSettingsAll()
     const idx = arr.findIndex((s) => s.userId === userId)
-    const current = idx === -1
-      ? { userId, notifications: { ...DEFAULT_NOTIFICATION_SETTINGS } }
-      : arr[idx]
+    const current = fillDefaults(idx === -1 ? null : arr[idx], userId)
     const next = {
       ...current,
       notifications: { ...current.notifications, [key]: value },
+    }
+    if (idx === -1) arr.push(next)
+    else arr[idx] = next
+    saveSettingsAll(arr)
+    bump()
+    return next
+  },
+  setDisplay(userId, key, value) {
+    const arr = loadSettingsAll()
+    const idx = arr.findIndex((s) => s.userId === userId)
+    const current = fillDefaults(idx === -1 ? null : arr[idx], userId)
+    const next = {
+      ...current,
+      display: { ...current.display, [key]: value },
     }
     if (idx === -1) arr.push(next)
     else arr[idx] = next

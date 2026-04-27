@@ -5,6 +5,7 @@ import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import { ensureAnonymousAuth } from './lib/firebase.js'
 import { syncUserProfile } from './lib/firestoreSync.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'
+import { maybeFireGoalReminder } from './lib/reminder.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -37,6 +38,14 @@ export default function App() {
       seedIfNeeded()
       ensureDemoTeams()
     }
+  }, [current])
+
+  // 20:00 以降に未達成ミッションがあればリマインダー通知（1日1回）。
+  useEffect(() => {
+    if (!current) return
+    maybeFireGoalReminder(current)
+    const interval = setInterval(() => maybeFireGoalReminder(current), 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [current])
 
   // Firebase anon auth + initial profile push + activities load (one-shot at mount).

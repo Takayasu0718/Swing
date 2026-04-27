@@ -134,6 +134,26 @@ export default function RegisterScreen({ onDone }) {
               </button>
             ))}
           </div>
+          <div className="goal-custom-row">
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="9999"
+              placeholder="または直接入力"
+              value={dailyGoal || ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') {
+                  setDailyGoal(0)
+                  return
+                }
+                const n = parseInt(raw, 10)
+                if (Number.isFinite(n) && n > 0) setDailyGoal(n)
+              }}
+            />
+            <span className="goal-custom-unit">回</span>
+          </div>
         </div>
       )}
 

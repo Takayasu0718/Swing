@@ -300,6 +300,37 @@ body {
   border-color: var(--blue-600);
 }
 
+.goal-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.goal-custom-row input {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  font-size: 1rem;
+  border: 1.5px solid var(--blue-100);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--slate-900);
+  outline: none;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-custom-row input:focus {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.goal-custom-unit {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate-700);
+}
+
 /* ================ Submit ================ */
 .submit {
   margin-top: 0.5rem;
@@ -586,9 +617,10 @@ body {
 }
 
 .dragon-img {
-  width: 110px;
-  height: 110px;
+  width: 140px;
+  height: 140px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .dragon-info {

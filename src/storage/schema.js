@@ -160,10 +160,22 @@ export const NOTIFICATION_TYPES = Object.freeze([
   { key: 'friend_team_request', label: 'フレンドチーム申請通知' },
   { key: 'goal_raised', label: '目標回数アップ通知' },
   { key: 'mvp_selected', label: 'MVP選出通知' },
+  { key: 'goal_reminder', label: '目標リマインダー（20時）' },
 ])
 
 export const DEFAULT_NOTIFICATION_SETTINGS = Object.freeze(
   NOTIFICATION_TYPES.reduce((acc, t) => {
+    acc[t.key] = true
+    return acc
+  }, {}),
+)
+
+export const DISPLAY_SETTINGS = Object.freeze([
+  { key: 'showAllUserRanking', label: '全ユーザーランキングを表示' },
+])
+
+export const DEFAULT_DISPLAY_SETTINGS = Object.freeze(
+  DISPLAY_SETTINGS.reduce((acc, t) => {
     acc[t.key] = true
     return acc
   }, {}),

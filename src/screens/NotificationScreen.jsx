@@ -23,6 +23,7 @@ const TYPE_ICON = {
   friend_team_request: '🤝',
   goal_raised: '📈',
   mvp_selected: '🏆',
+  goal_reminder: '⏰',
 }
 
 // Request types that have a pending record and show accept/decline buttons.

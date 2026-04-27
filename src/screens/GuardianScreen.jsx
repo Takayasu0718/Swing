@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { users, missions, settings, __resetAll } from '../storage/storage.js'
-import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES } from '../storage/schema.js'
+import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES, DISPLAY_SETTINGS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { computeStreak, countAchievementDays } from '../lib/date.js'
 import { levelFromDays } from '../lib/dragon.js'
@@ -30,6 +30,10 @@ export default function GuardianScreen({ onNavigate }) {
 
   const toggleNotification = (key) => {
     settings.setNotification(user.id, key, !userSettings.notifications[key])
+  }
+
+  const toggleDisplay = (key) => {
+    settings.setDisplay(user.id, key, !userSettings.display[key])
   }
 
   const resetAll = () => {
@@ -105,6 +109,29 @@ export default function GuardianScreen({ onNavigate }) {
                 type="button"
                 className="toggle-row"
                 onClick={() => toggleNotification(t.key)}
+                aria-pressed={on}
+              >
+                <span className="toggle-label">{t.label}</span>
+                <span className={`toggle ${on ? 'on' : ''}`} aria-hidden>
+                  <span className="toggle-knob" />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">表示設定</div>
+        <div className="toggle-list">
+          {DISPLAY_SETTINGS.map((t) => {
+            const on = !!userSettings.display?.[t.key]
+            return (
+              <button
+                key={t.key}
+                type="button"
+                className="toggle-row"
+                onClick={() => toggleDisplay(t.key)}
                 aria-pressed={on}
               >
                 <span className="toggle-label">{t.label}</span>
