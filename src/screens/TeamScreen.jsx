@@ -26,6 +26,7 @@ import {
   acceptFsTeamRequest,
   declineFsTeamRequest,
 } from '../lib/firestoreTeamRequests.js'
+import { postFsChat, toggleFsChatLike } from '../lib/firestoreChats.js'
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -59,6 +60,7 @@ export default function TeamScreen() {
     allFsTeams,
     incomingRequests,
     outgoingRequests,
+    teamChats: fsTeamChats,
     refreshAllTeams,
   } = useFirestoreTeams()
   const { allUsers } = useFirestoreFriends()
@@ -202,15 +204,20 @@ export default function TeamScreen() {
   const teamActivities = activities
     .listByTeam(myTeam.id)
     .filter((a) => a.type !== ACTIVITY_TYPES.MATCH_RESULT)
-  const teamChat = chats.listByTeam(myTeam.id)
+  // FS team では Firestore のチャットを使用、それ以外は localStorage（mock 互換）
+  const teamChat = isFsTeam ? fsTeamChats : chats.listByTeam(myTeam.id)
 
   const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
-  const handleLikeChat = (id) => chats.toggleLike(id, me.id)
+  const handleLikeChat = (id) => {
+    if (isFsTeam) toggleFsChatLike(myTeam.id, id, myUid)
+    else chats.toggleLike(id, me.id)
+  }
 
   const submitChat = () => {
     const content = chatInput.trim()
     if (!content) return
-    chats.post({ teamId: myTeam.id, userId: me.id, content })
+    if (isFsTeam) postFsChat(myTeam.id, content)
+    else chats.post({ teamId: myTeam.id, userId: me.id, content })
     setChatInput('')
   }
 
@@ -463,10 +470,11 @@ export default function TeamScreen() {
         ) : (
           <div className="chat-list">
             {teamChat.map((c) => {
-              const sender = users.get(c.userId)
-              const liked = c.likeUserIds?.includes(me.id)
+              const sender = lookupMember(c.userId)
+              const myCheckId = isFsTeam ? myUid : me.id
+              const liked = c.likeUserIds?.includes(myCheckId)
               const likeCount = c.likeUserIds?.length || 0
-              const isMine = c.userId === me.id
+              const isMine = c.userId === myCheckId
               return (
                 <div key={c.id} className={`chat-row ${isMine ? 'mine' : ''}`}>
                   <button

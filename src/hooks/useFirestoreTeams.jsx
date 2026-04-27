@@ -6,6 +6,7 @@ import {
   subscribeIncomingTeamRequests,
   subscribeMyOutgoingTeamRequests,
 } from '../lib/firestoreTeamRequests.js'
+import { subscribeChats } from '../lib/firestoreChats.js'
 
 const Ctx = createContext({
   myUid: null,
@@ -14,6 +15,7 @@ const Ctx = createContext({
   allFsTeams: [],
   incomingRequests: [],
   outgoingRequests: [],
+  teamChats: [],
   refreshAllTeams: async () => {},
 })
 
@@ -23,6 +25,7 @@ export function FirestoreTeamsProvider({ children }) {
   const [allFsTeams, setAllFsTeams] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
   const [outgoingRequests, setOutgoingRequests] = useState([])
+  const [teamChats, setTeamChats] = useState([])
 
   useEffect(() => {
     let unsubTeams = null
@@ -68,12 +71,22 @@ export function FirestoreTeamsProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captainTeamIdsKey])
 
+  const myFsTeam = myFsTeams[0] || null
+  const myFsTeamId = myFsTeam?.id || null
+
+  useEffect(() => {
+    const unsub = subscribeChats(myFsTeamId, (items) => {
+      setTeamChats(items)
+    })
+    return () => {
+      if (unsub) unsub()
+    }
+  }, [myFsTeamId])
+
   const refreshAllTeams = async () => {
     const teams = await listAllFsTeams()
     setAllFsTeams(teams)
   }
-
-  const myFsTeam = myFsTeams[0] || null
 
   return (
     <Ctx.Provider
@@ -84,6 +97,7 @@ export function FirestoreTeamsProvider({ children }) {
         allFsTeams,
         incomingRequests,
         outgoingRequests,
+        teamChats,
         refreshAllTeams,
       }}
     >

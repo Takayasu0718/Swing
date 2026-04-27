@@ -45,6 +45,19 @@ service cloud.firestore {
                         || request.auth.uid == resource.data.captainId);
       allow delete: if request.auth != null
                     && request.auth.uid == resource.data.captainId;
+
+      // チームチャット: メンバーのみ read/write 可能。
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+        allow create: if request.auth != null
+                      && request.auth.uid == request.resource.data.userId
+                      && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+        allow update: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+        allow delete: if request.auth != null
+                      && request.auth.uid == resource.data.userId;
+      }
     }
 
     // チーム関連リクエスト（加入申請 / フレンドチーム申請）
