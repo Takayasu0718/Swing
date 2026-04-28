@@ -119,7 +119,7 @@ export function onMissionApproved(userId, fsRecipientUids = []) {
 }
 
 // Only fires when goal was increased (old -> new). First registration has no oldGoal -> no-op.
-export function onGoalRaised(userId, oldGoal, newGoal) {
+export function onGoalRaised(userId, oldGoal, newGoal, fsRecipientUids = []) {
   if (!newGoal || !oldGoal || newGoal <= oldGoal) return
   const user = users.get(userId)
   if (!user) return
@@ -138,6 +138,14 @@ export function onGoalRaised(userId, oldGoal, newGoal) {
       fromUserId: userId,
       content: `${user.nickname}さんが目標回数を${newGoal}回にアップしました`,
       activityId: activity.id,
+    })
+  }
+
+  for (const fsUid of fsRecipientUids) {
+    createFsNotification({
+      userId: fsUid,
+      type: 'goal_raised',
+      content: `${user.nickname}さんが目標回数を${newGoal}回にアップしました`,
     })
   }
 }

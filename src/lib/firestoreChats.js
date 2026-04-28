@@ -15,6 +15,17 @@ import {
   getDoc,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
+import { createFsNotification } from './firestoreNotifications.js'
+
+async function fetchNickname(uid) {
+  if (!db || !uid) return ''
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    return snap.exists() ? snap.data().nickname || '' : ''
+  } catch {
+    return ''
+  }
+}
 
 function tsToIso(ts) {
   if (ts && typeof ts.toDate === 'function') return ts.toDate().toISOString()
@@ -76,10 +87,20 @@ export async function toggleFsChatLike(teamId, messageId, uid) {
     const ref = doc(db, 'teams', teamId, 'messages', messageId)
     const snap = await getDoc(ref)
     if (!snap.exists()) return
-    const liked = (snap.data().likeUserIds || []).includes(uid)
+    const data = snap.data()
+    const liked = (data.likeUserIds || []).includes(uid)
     await updateDoc(ref, {
       likeUserIds: liked ? arrayRemove(uid) : arrayUnion(uid),
     })
+    // 「いいね」した瞬間（=未liked→liked）かつ自分のメッセージでない時に通知
+    if (!liked && data.userId && data.userId !== uid) {
+      const likerName = await fetchNickname(uid)
+      await createFsNotification({
+        userId: data.userId,
+        type: 'like',
+        content: `${likerName || '誰か'}さんがチームチャットにいいねしました`,
+      })
+    }
   } catch (e) {
     console.error('[firestoreChats] toggle like failed', e)
   }

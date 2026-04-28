@@ -15,6 +15,17 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db, authReady, getAuthUid } from './firebase.js'
+import { createFsNotification } from './firestoreNotifications.js'
+
+async function fetchNickname(uid) {
+  if (!db || !uid) return ''
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    return snap.exists() ? snap.data().nickname || '' : ''
+  } catch {
+    return ''
+  }
+}
 
 function pairId(a, b) {
   return [a, b].sort().join('_')
@@ -57,6 +68,13 @@ export async function sendFriendRequestFs(toUid) {
       status: 'pending',
       createdAt: serverTimestamp(),
     })
+    const myName = await fetchNickname(myUid)
+    await createFsNotification({
+      userId: toUid,
+      type: 'friend_request',
+      content: `${myName || '誰か'}さんからフレンド申請が届きました`,
+      requestId: id,
+    })
     console.log('[firestoreFriends] request sent', id)
     return id
   } catch (e) {
@@ -69,9 +87,19 @@ export async function acceptFriendRequestFs(friendshipId) {
   if (!db || !friendshipId) return
   await authReady
   try {
-    await updateDoc(doc(db, 'friendships', friendshipId), {
+    const ref = doc(db, 'friendships', friendshipId)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
+    const f = snap.data()
+    await updateDoc(ref, {
       status: 'accepted',
       acceptedAt: serverTimestamp(),
+    })
+    const myName = await fetchNickname(f.toUid)
+    await createFsNotification({
+      userId: f.fromUid,
+      type: 'friend_accepted',
+      content: `${myName || '相手'}さんがフレンド申請を承認しました`,
     })
     console.log('[firestoreFriends] accepted', friendshipId)
   } catch (e) {

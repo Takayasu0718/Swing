@@ -5,10 +5,14 @@ import { ROLES, DAILY_GOAL_OPTIONS, USER_ID_REGEX, USER_ID_RULE } from '../stora
 import { onGoalRaised } from '../lib/events.js'
 import { authReady } from '../lib/firebase.js'
 import { reserveUsername } from '../lib/firestoreUsername.js'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 
 export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const current = users.getCurrent()
   const isEdit = !!current
+  const { myUid, friendships: fsFriendships } = useFirestoreFriends()
+  const { myFsTeam } = useFirestoreTeams()
 
   const [email, setEmail] = useState(current?.email ?? '')
   const [nickname, setNickname] = useState(current?.nickname ?? '')
@@ -34,9 +38,9 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
     setSubmitting(true)
     try {
       // Firestore で一意性を担保（認証済みのとき）
-      const myUid = await authReady
-      if (myUid) {
-        const result = await reserveUsername(trimmedUserId, myUid)
+      const authUid = await authReady
+      if (authUid) {
+        const result = await reserveUsername(trimmedUserId, authUid)
         if (!result.ok) {
           if (result.reason === 'taken') {
             setError('このユーザーIDはすでに使われています')
@@ -71,7 +75,13 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
       }
 
       if (role === ROLES.PLAYER) {
-        onGoalRaised(savedId, prevGoal, data.dailyGoal)
+        const fsFriendUids = (fsFriendships || [])
+          .filter((f) => f.status === 'accepted')
+          .map((f) => f.participants?.find((p) => p !== myUid))
+          .filter(Boolean)
+        const fsTeammateUids = (myFsTeam?.memberIds ?? []).filter((u) => u !== myUid)
+        const fsRecipientUids = Array.from(new Set([...fsFriendUids, ...fsTeammateUids]))
+        onGoalRaised(savedId, prevGoal, data.dailyGoal, fsRecipientUids)
       }
       onDone?.()
     } finally {
