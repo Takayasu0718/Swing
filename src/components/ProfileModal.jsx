@@ -131,7 +131,10 @@ export default function ProfileModal() {
             {user.userId && <div className="profile-handle">@{user.userId}</div>}
             <div className="profile-meta">
               <span className="role-tag">{ROLE_LABELS[user.role]}</span>
-              {team && <span className="friend-tag">{team.name}</span>}
+              {user.teamName && <span className="friend-tag">{user.teamName}</span>}
+              {team && team.name !== user.teamName && (
+                <span className="friend-tag">{team.name}</span>
+              )}
             </div>
           </div>
         </div>
