@@ -13,6 +13,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const [email, setEmail] = useState(current?.email ?? '')
   const [nickname, setNickname] = useState(current?.nickname ?? '')
   const [userId, setUserId] = useState(current?.userId ?? '')
+  const [teamName, setTeamName] = useState(current?.teamName ?? '')
   const [avatarStamp, setAvatarStamp] = useState(current?.avatarStamp ?? STAMPS[0].id)
   const [role, setRole] = useState(current?.role ?? ROLES.PLAYER)
   const [dailyGoal, setDailyGoal] = useState(current?.dailyGoal ?? 50)
@@ -51,6 +52,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
         nickname: nickname.trim(),
         userId: trimmedUserId,
         userIdLower: trimmedUserId.toLowerCase(),
+        teamName: teamName.trim(),
         avatarStamp,
         role,
         dailyGoal: role === ROLES.PLAYER ? dailyGoal : null,
@@ -128,6 +130,17 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
           pattern="[a-zA-Z0-9_-]{3,20}"
         />
         <span className="field-hint">{USER_ID_RULE}（重複不可）</span>
+      </label>
+
+      <label className="field">
+        <span className="field-label">所属チーム名（任意）</span>
+        <input
+          type="text"
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          placeholder="例: 桜台サンバード"
+          maxLength={30}
+        />
       </label>
 
       <div className="field">

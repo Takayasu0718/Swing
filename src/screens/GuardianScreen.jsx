@@ -59,6 +59,7 @@ export default function GuardianScreen({ onNavigate }) {
             {user.userId && <div className="profile-handle">@{user.userId}</div>}
             <div className="profile-meta">
               <span className="role-tag">{ROLE_LABELS[user.role]}</span>
+              {user.teamName && <span className="friend-tag">{user.teamName}</span>}
               {user.email && <span className="profile-email">{user.email}</span>}
             </div>
           </div>
