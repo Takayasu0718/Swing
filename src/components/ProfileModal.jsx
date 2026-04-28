@@ -62,6 +62,7 @@ export default function ProfileModal() {
         id: fsUser.uid,
         nickname: fsUser.nickname,
         userId: fsUser.userId,
+        teamName: fsUser.teamName,
         avatarStamp: fsUser.avatarStamp,
         role: fsUser.role || ROLES.PLAYER,
         dailyGoal: fsUser.dailyGoal,
