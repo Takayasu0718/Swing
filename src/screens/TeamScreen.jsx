@@ -20,6 +20,7 @@ import {
   createFsTeam,
   addFsMatch,
   updateFsTeam,
+  removeFsTeamMember,
 } from '../lib/firestoreTeams.js'
 import {
   sendFsJoinRequest,
@@ -227,6 +228,21 @@ export default function TeamScreen() {
     if (isFsTeam) postFsChat(myTeam.id, content)
     else chats.post({ teamId: myTeam.id, userId: me.id, content })
     setChatInput('')
+  }
+
+  const handleLeaveTeam = () => {
+    if (!myTeam) return
+    if (myTeam.captainId === myMemberId) {
+      alert('キャプテンは脱退できません。先に他のメンバーにキャプテンを譲ってください。')
+      return
+    }
+    if (!confirm('チームを脱退しますか？')) return
+    if (isFsTeam) {
+      removeFsTeamMember(myTeam.id, myUid)
+    } else {
+      const next = (myTeam.memberIds || []).filter((id) => id !== me.id)
+      teams.update(myTeam.id, { memberIds: next })
+    }
   }
 
   const teamSearchDropdown = q && (
@@ -578,6 +594,12 @@ export default function TeamScreen() {
           setEditingMatchId(null)
         }}
       />
+
+      <section className="info-card">
+        <button className="danger-btn" onClick={handleLeaveTeam}>
+          チームを脱退する
+        </button>
+      </section>
     </div>
   )
 }

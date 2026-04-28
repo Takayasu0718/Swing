@@ -13,6 +13,7 @@ import {
   onSnapshot,
   serverTimestamp,
   arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
 
@@ -104,6 +105,19 @@ export async function addFsTeamMember(teamId, uid) {
     })
   } catch (e) {
     console.error('[firestoreTeams] addMember failed', e)
+  }
+}
+
+export async function removeFsTeamMember(teamId, uid) {
+  if (!db || !teamId || !uid) return
+  await authReady
+  try {
+    await updateDoc(doc(db, 'teams', teamId), {
+      memberIds: arrayRemove(uid),
+      updatedAt: serverTimestamp(),
+    })
+  } catch (e) {
+    console.error('[firestoreTeams] removeMember failed', e)
   }
 }
 
