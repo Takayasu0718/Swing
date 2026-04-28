@@ -288,7 +288,8 @@ export default function HomeScreen() {
               {ranking.map((r, i) => (
                 <li
                   key={r.uid}
-                  className={`ranking-row ${r.uid === myUid ? 'me' : ''}`}
+                  className={`ranking-row ${r.uid === myUid ? 'me' : ''} clickable`}
+                  onClick={() => r.uid && openProfile(r.uid)}
                 >
                   <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
                   <span className="activity-stamp small" aria-hidden>

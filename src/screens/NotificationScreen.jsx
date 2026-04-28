@@ -112,8 +112,11 @@ export default function NotificationScreen() {
             return (
               <li
                 key={n.id}
-                className={`notif-row ${n.read ? '' : 'unread'}`}
-                onClick={() => markRead(n.id)}
+                className={`notif-row ${n.read ? '' : 'unread'} ${from ? 'clickable' : ''}`}
+                onClick={() => {
+                  markRead(n.id)
+                  if (from) openProfile(from.id)
+                }}
               >
                 {from ? (
                   <button

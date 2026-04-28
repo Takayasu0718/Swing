@@ -178,7 +178,11 @@ export default function FriendsScreen() {
               const u = usersByUid[f.fromUid]
               return (
                 <li key={f.id} className="search-row">
-                  <div className="row-link">
+                  <button
+                    type="button"
+                    className="row-link"
+                    onClick={() => openProfile(f.fromUid)}
+                  >
                     <span className="activity-stamp" aria-hidden>
                       {getStamp(u?.avatarStamp).label}
                     </span>
@@ -186,7 +190,7 @@ export default function FriendsScreen() {
                       <div className="activity-name">{u?.nickname ?? f.fromUid.slice(0, 6)}</div>
                       <div className="search-sub">フレンド申請が届いています</div>
                     </div>
-                  </div>
+                  </button>
                   <div className="notif-actions">
                     <button
                       type="button"
@@ -217,10 +221,16 @@ export default function FriendsScreen() {
             {fsOutgoing.map((f) => {
               const u = usersByUid[f.toUid]
               return (
-                <li key={f.id} className="friend-chip">
-                  <span className="activity-stamp" aria-hidden>{getStamp(u?.avatarStamp).label}</span>
-                  <span className="activity-name">{u?.nickname ?? f.toUid.slice(0, 6)}</span>
-                  <span className="friend-tag">送信済み</span>
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    className="friend-chip"
+                    onClick={() => openProfile(f.toUid)}
+                  >
+                    <span className="activity-stamp" aria-hidden>{getStamp(u?.avatarStamp).label}</span>
+                    <span className="activity-name">{u?.nickname ?? f.toUid.slice(0, 6)}</span>
+                    <span className="friend-tag">送信済み</span>
+                  </button>
                 </li>
               )
             })}
@@ -240,7 +250,11 @@ export default function FriendsScreen() {
           <ul className="friend-chips">
             {fsAcceptedFriends.map((f) => (
               <li key={`fs-${f.uid}`}>
-                <button type="button" className="friend-chip">
+                <button
+                  type="button"
+                  className="friend-chip"
+                  onClick={() => openProfile(f.uid)}
+                >
                   <span className="activity-stamp" aria-hidden>{getStamp(f.avatarStamp).label}</span>
                   <span className="activity-name">{f.nickname}</span>
                   <span className="real-tag">実</span>

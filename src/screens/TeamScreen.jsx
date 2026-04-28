@@ -413,7 +413,11 @@ export default function TeamScreen() {
               const label = req.kind === 'join' ? '加入申請' : 'フレンドチーム申請'
               return (
                 <li key={req.id} className="search-row">
-                  <div className="row-link">
+                  <button
+                    type="button"
+                    className="row-link"
+                    onClick={() => openProfile(req.fromUid)}
+                  >
                     <span className="activity-stamp" aria-hidden>
                       {getStamp(fromUser?.avatarStamp).label}
                     </span>
@@ -423,7 +427,7 @@ export default function TeamScreen() {
                       </div>
                       <div className="search-sub">{label}</div>
                     </div>
-                  </div>
+                  </button>
                   <div className="notif-actions">
                     <button
                       type="button"
@@ -484,7 +488,8 @@ export default function TeamScreen() {
                 {teamRanking.map((r, i) => (
                   <li
                     key={r.id}
-                    className={`ranking-row ${r.id === me.id ? 'me' : ''}`}
+                    className={`ranking-row ${r.id === me.id ? 'me' : ''} clickable`}
+                    onClick={() => r.id && openProfile(r.id)}
                   >
                     <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
                     <span className="activity-stamp small" aria-hidden>
@@ -608,6 +613,7 @@ export default function TeamScreen() {
         onStartAdd={() => setEditingMatchId('new')}
         onStartEdit={(id) => setEditingMatchId(id)}
         onCancel={() => setEditingMatchId(null)}
+        onOpenProfile={openProfile}
         onAdd={(match) => {
           if (isFsTeam) {
             addFsMatch(myTeam.id, match)
@@ -821,6 +827,7 @@ function TeamMatchesCard({
   onCancel,
   onAdd,
   onUpdate,
+  onOpenProfile,
 }) {
   const matches = [...(team.matches || [])].sort((a, b) => (a.date < b.date ? 1 : -1))
   const editingMatch = editingMatchId && editingMatchId !== 'new'
@@ -865,12 +872,16 @@ function TeamMatchesCard({
                   <div className="match-date">{m.date}</div>
                 </div>
                 {mvp && (
-                  <div className="mvp-chip">
+                  <button
+                    type="button"
+                    className="mvp-chip mvp-chip-btn"
+                    onClick={() => onOpenProfile?.(mvp.id)}
+                  >
                     <span className="mvp-label">MVP</span>
                     <span className="activity-stamp small" aria-hidden>{getStamp(mvp.avatarStamp).label}</span>
                     <span className="activity-name small">{mvp.nickname}</span>
                     {m.mvpReason && <span className="mvp-reason">「{m.mvpReason}」</span>}
-                  </div>
+                  </button>
                 )}
                 {canEdit && !editingMatchId && (
                   <div className="match-actions">

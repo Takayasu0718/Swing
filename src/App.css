@@ -492,6 +492,27 @@ body {
   border-bottom: 1px dashed var(--blue-100);
 }
 
+.ranking-row.clickable {
+  cursor: pointer;
+}
+
+.ranking-row.clickable:hover {
+  background: var(--blue-50);
+}
+
+.notif-row.clickable {
+  cursor: pointer;
+}
+
+.mvp-chip-btn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mvp-chip-btn:hover {
+  background: var(--blue-100);
+}
+
 .ranking-row:last-child {
   border-bottom: none;
 }
