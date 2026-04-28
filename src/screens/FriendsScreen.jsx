@@ -77,16 +77,20 @@ export default function FriendsScreen() {
           const isIncoming = rel?.status === 'pending' && rel.toUid === myUid
           return (
             <li key={`fs-${u.uid}`} className="search-row">
-              <div className="row-link">
+              <button
+                type="button"
+                className="row-link"
+                onClick={() => openProfile(u.uid)}
+              >
                 <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
                 <div className="search-info">
                   <div className="activity-name">
                     {u.nickname}
+                    {u.userId && <span className="user-handle">@{u.userId}</span>}
                     <span className="real-tag">実ユーザー</span>
                   </div>
-                  {u.userId && <div className="search-sub">@{u.userId}</div>}
                 </div>
-              </div>
+              </button>
               {isFsFriend ? (
                 <span className="friend-tag">フレンド</span>
               ) : isOutgoing ? (
@@ -126,8 +130,10 @@ export default function FriendsScreen() {
               >
                 <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
                 <div className="search-info">
-                  <div className="activity-name">{u.nickname}</div>
-                  {u.userId && <div className="search-sub">@{u.userId}</div>}
+                  <div className="activity-name">
+                    {u.nickname}
+                    {u.userId && <span className="user-handle">@{u.userId}</span>}
+                  </div>
                   {team && <div className="search-sub">{team.name}</div>}
                 </div>
               </button>

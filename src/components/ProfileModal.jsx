@@ -1,15 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { countAchievementDays, computeStreak } from '../lib/date.js'
 import { levelFromDays, stageLabel } from '../lib/dragon.js'
 import { sendFriendRequest } from '../lib/events.js'
+import { sendFriendRequestFs } from '../lib/firestoreFriends.js'
 import ActivityItem from './ActivityItem.jsx'
 
 export default function ProfileModal() {
   const { viewUserId, closeProfile } = useProfile()
+  const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
   const me = users.getCurrent()
   const modalRef = useRef(null)
   const closeRef = useRef(null)
@@ -51,35 +54,63 @@ export default function ProfileModal() {
   }, [open, closeProfile])
 
   if (!open || !me) return null
-  const user = users.get(viewUserId)
+  // localStorage か Firestore（実ユーザー）からユーザーを引く
+  const localUser = users.get(viewUserId)
+  const fsUser = !localUser ? (allUsers || []).find((u) => u.uid === viewUserId) : null
+  const user = localUser || (fsUser
+    ? {
+        id: fsUser.uid,
+        nickname: fsUser.nickname,
+        userId: fsUser.userId,
+        avatarStamp: fsUser.avatarStamp,
+        role: fsUser.role || ROLES.PLAYER,
+        dailyGoal: fsUser.dailyGoal,
+        email: fsUser.email,
+        advice: fsUser.advice,
+      }
+    : null)
   if (!user) return null
 
-  const isMe = user.id === me.id
+  const isFsUser = !!fsUser
+  const isMe = isFsUser ? user.id === myUid : user.id === me.id
   const stamp = getStamp(user.avatarStamp)
-  const team = teams.findByMember(user.id)
+  const team = isFsUser ? null : teams.findByMember(user.id)
   const isPlayer = user.role === ROLES.PLAYER
 
-  const userMissions = isPlayer ? missions.listByUser(user.id) : []
+  const userMissions = isPlayer && !isFsUser ? missions.listByUser(user.id) : []
   const days = countAchievementDays(userMissions)
   const streak = computeStreak(userMissions)
   const level = levelFromDays(days)
 
-  const userActivities = activities.listByUsers([user.id]).slice(0, 10)
+  const userActivities = isFsUser ? [] : activities.listByUsers([user.id]).slice(0, 10)
 
-  const relation = !isMe
-    ? friendships
-        .list()
-        .find(
-          (f) =>
-            (f.fromUserId === me.id && f.toUserId === user.id) ||
-            (f.fromUserId === user.id && f.toUserId === me.id),
-        )
-    : null
-  const isFriend = relation?.status === 'accepted'
-  const outgoingPending = relation?.status === 'pending' && relation.fromUserId === me.id
-  const incomingPending = relation?.status === 'pending' && relation.toUserId === me.id
+  // フレンド関係: Firestore（実ユーザー対象）優先、なければ localStorage を確認
+  let isFriend = false
+  let outgoingPending = false
+  let incomingPending = false
+  if (!isMe) {
+    if (isFsUser) {
+      const fsRel = (fsFriendships || []).find((f) => f.participants?.includes(user.id))
+      isFriend = fsRel?.status === 'accepted'
+      outgoingPending = fsRel?.status === 'pending' && fsRel.fromUid === myUid
+      incomingPending = fsRel?.status === 'pending' && fsRel.toUid === myUid
+    } else {
+      const localRel = friendships.list().find(
+        (f) =>
+          (f.fromUserId === me.id && f.toUserId === user.id) ||
+          (f.fromUserId === user.id && f.toUserId === me.id),
+      )
+      isFriend = localRel?.status === 'accepted'
+      outgoingPending = localRel?.status === 'pending' && localRel.fromUserId === me.id
+      incomingPending = localRel?.status === 'pending' && localRel.toUserId === me.id
+    }
+  }
 
   const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
+  const handleSendRequest = () => {
+    if (isFsUser) sendFriendRequestFs(user.id)
+    else sendFriendRequest(me.id, user.id)
+  }
 
   return (
     <div className="modal-overlay" onClick={closeProfile}>
@@ -117,7 +148,7 @@ export default function ProfileModal() {
               <button
                 type="button"
                 className="small-btn filled"
-                onClick={() => sendFriendRequest(me.id, user.id)}
+                onClick={handleSendRequest}
               >
                 フレンド申請
               </button>
