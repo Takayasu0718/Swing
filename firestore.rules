@@ -9,6 +9,18 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // ユーザーID（@ハンドル）の予約。ドキュメントID = userId.toLowerCase()。
+    // 認証済みなら誰でも read 可能（重複確認のため）。
+    // create は本人がオーナーである場合のみ。
+    // update / delete は将来の名前変更用に本人のみ許可。
+    match /usernames/{userIdLower} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerUid;
+      allow update, delete: if request.auth != null
+                            && request.auth.uid == resource.data.ownerUid;
+    }
+
     // activities: ランキング集計のため認証済みなら誰でも read 可能（書き込みは本人のみ）
     match /users/{userId}/activities/{docId} {
       allow read: if request.auth != null;

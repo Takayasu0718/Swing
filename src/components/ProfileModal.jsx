@@ -97,6 +97,7 @@ export default function ProfileModal() {
           <span className="avatar-xxl" aria-hidden>{stamp.label}</span>
           <div className="profile-hero-info">
             <div className="profile-name">{user.nickname}</div>
+            {user.userId && <div className="profile-handle">@{user.userId}</div>}
             <div className="profile-meta">
               <span className="role-tag">{ROLE_LABELS[user.role]}</span>
               {team && <span className="friend-tag">{team.name}</span>}

@@ -109,6 +109,10 @@ export const ROLE_LABELS = Object.freeze({
 
 export const DAILY_GOAL_OPTIONS = Object.freeze([25, 50, 75, 100, 125, 150, 175, 200])
 
+// User ID（@ハンドル）: 半角英数字 + アンダーバー + ハイフン、3〜20文字
+export const USER_ID_REGEX = /^[a-zA-Z0-9_-]{3,20}$/
+export const USER_ID_RULE = '半角英数字、アンダーバー、ハイフン、3〜20文字'
+
 export const ACTIVITY_TYPES = Object.freeze({
   SWING_ACHIEVED: 'swing_achieved',
   LEVEL_UP: 'level_up',

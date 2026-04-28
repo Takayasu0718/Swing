@@ -32,7 +32,8 @@ export default function App() {
   useStoreVersion()
   const current = users.getCurrent()
   const [tab, setTab] = useState('home')
-  const activeTab = current ? tab : 'register'
+  const needsUserIdSetup = !!current && !current.userId
+  const activeTab = !current || needsUserIdSetup ? 'register' : tab
 
   useEffect(() => {
     if (current) {
@@ -98,7 +99,7 @@ export default function App() {
   let screen
   switch (activeTab) {
     case 'register':
-      screen = <RegisterScreen onDone={() => setTab('home')} />
+      screen = <RegisterScreen onDone={() => setTab('home')} needsUserIdSetup={needsUserIdSetup} />
       break
     case 'home':
       screen = <HomeScreen />
@@ -130,7 +131,7 @@ export default function App() {
               tabs={TABS}
               active={activeTab}
               onChange={handleTabChange}
-              locked={!current ? 'register' : null}
+              locked={!current || needsUserIdSetup ? 'register' : null}
               badges={{ notif: unreadCount }}
             />
             <ProfileModal />

@@ -56,6 +56,7 @@ export default function GuardianScreen({ onNavigate }) {
           <span className="avatar-big" aria-hidden>{getStamp(user.avatarStamp).label}</span>
           <div className="profile-info">
             <div className="profile-name">{user.nickname}</div>
+            {user.userId && <div className="profile-handle">@{user.userId}</div>}
             <div className="profile-meta">
               <span className="role-tag">{ROLE_LABELS[user.role]}</span>
               {user.email && <span className="profile-email">{user.email}</span>}

@@ -43,10 +43,12 @@ export default function FriendsScreen() {
 
   // ----- Search -----
   const q = query.trim()
+  const qLower = q.toLowerCase()
   const localResults = q
     ? users.list().filter((u) => {
         if (u.id === me.id) return false
         if (matchesJa(u.nickname, q)) return true
+        if (u.userId && u.userId.toLowerCase().includes(qLower)) return true
         const userTeam = allTeams.find((t) => t.memberIds?.includes(u.id))
         return userTeam ? matchesJa(userTeam.name, q) : false
       })
@@ -54,7 +56,9 @@ export default function FriendsScreen() {
   const remoteResults = q
     ? allUsers.filter((u) => {
         if (!u.uid || u.uid === myUid) return false
-        return matchesJa(u.nickname || '', q)
+        if (matchesJa(u.nickname || '', q)) return true
+        if (u.userId && u.userId.toLowerCase().includes(qLower)) return true
+        return false
       })
     : []
 
@@ -80,6 +84,7 @@ export default function FriendsScreen() {
                     {u.nickname}
                     <span className="real-tag">実ユーザー</span>
                   </div>
+                  {u.userId && <div className="search-sub">@{u.userId}</div>}
                 </div>
               </div>
               {isFsFriend ? (
@@ -122,6 +127,7 @@ export default function FriendsScreen() {
                 <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
                 <div className="search-info">
                   <div className="activity-name">{u.nickname}</div>
+                  {u.userId && <div className="search-sub">@{u.userId}</div>}
                   {team && <div className="search-sub">{team.name}</div>}
                 </div>
               </button>

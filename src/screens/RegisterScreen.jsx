@@ -1,51 +1,80 @@
 import { useState } from 'react'
 import { users, session } from '../storage/storage.js'
 import { STAMPS } from '../storage/stamps.js'
-import { ROLES, DAILY_GOAL_OPTIONS } from '../storage/schema.js'
+import { ROLES, DAILY_GOAL_OPTIONS, USER_ID_REGEX, USER_ID_RULE } from '../storage/schema.js'
 import { onGoalRaised } from '../lib/events.js'
+import { authReady } from '../lib/firebase.js'
+import { reserveUsername } from '../lib/firestoreUsername.js'
 
-export default function RegisterScreen({ onDone }) {
+export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const current = users.getCurrent()
   const isEdit = !!current
 
   const [email, setEmail] = useState(current?.email ?? '')
   const [nickname, setNickname] = useState(current?.nickname ?? '')
+  const [userId, setUserId] = useState(current?.userId ?? '')
   const [avatarStamp, setAvatarStamp] = useState(current?.avatarStamp ?? STAMPS[0].id)
   const [role, setRole] = useState(current?.role ?? ROLES.PLAYER)
   const [dailyGoal, setDailyGoal] = useState(current?.dailyGoal ?? 50)
   const [advice, setAdvice] = useState(current?.advice ?? '')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const submit = () => {
+  const submit = async () => {
+    if (submitting) return
     setError('')
     if (!nickname.trim()) return setError('ニックネームを入力してください')
+    const trimmedUserId = userId.trim()
+    if (!trimmedUserId) return setError('ユーザーIDを入力してください')
+    if (!USER_ID_REGEX.test(trimmedUserId)) return setError(`ユーザーIDは ${USER_ID_RULE} で入力してください`)
     if (!avatarStamp) return setError('プロフィール画像を選択してください')
     if (role === ROLES.PLAYER && !dailyGoal) return setError('目標回数を選択してください')
 
-    const data = {
-      email: email.trim(),
-      nickname: nickname.trim(),
-      avatarStamp,
-      role,
-      dailyGoal: role === ROLES.PLAYER ? dailyGoal : null,
-      advice: role === ROLES.COACH ? advice.trim() : '',
-    }
+    setSubmitting(true)
+    try {
+      // Firestore で一意性を担保（認証済みのとき）
+      const myUid = await authReady
+      if (myUid) {
+        const result = await reserveUsername(trimmedUserId, myUid)
+        if (!result.ok) {
+          if (result.reason === 'taken') {
+            setError('このユーザーIDはすでに使われています')
+          } else {
+            setError('ユーザーIDの予約に失敗しました。時間をおいて再度お試しください。')
+          }
+          return
+        }
+      }
 
-    const prevGoal = current?.dailyGoal ?? null
-    let savedId
-    if (isEdit) {
-      users.update(current.id, data)
-      savedId = current.id
-    } else {
-      const u = users.create(data)
-      session.setCurrentUser(u.id)
-      savedId = u.id
-    }
+      const data = {
+        email: email.trim(),
+        nickname: nickname.trim(),
+        userId: trimmedUserId,
+        userIdLower: trimmedUserId.toLowerCase(),
+        avatarStamp,
+        role,
+        dailyGoal: role === ROLES.PLAYER ? dailyGoal : null,
+        advice: role === ROLES.COACH ? advice.trim() : '',
+      }
 
-    if (role === ROLES.PLAYER) {
-      onGoalRaised(savedId, prevGoal, data.dailyGoal)
+      const prevGoal = current?.dailyGoal ?? null
+      let savedId
+      if (isEdit) {
+        users.update(current.id, data)
+        savedId = current.id
+      } else {
+        const u = users.create(data)
+        session.setCurrentUser(u.id)
+        savedId = u.id
+      }
+
+      if (role === ROLES.PLAYER) {
+        onGoalRaised(savedId, prevGoal, data.dailyGoal)
+      }
+      onDone?.()
+    } finally {
+      setSubmitting(false)
     }
-    onDone?.()
   }
 
   return (
@@ -63,6 +92,12 @@ export default function RegisterScreen({ onDone }) {
         />
       </label>
 
+      {needsUserIdSetup && (
+        <div className="error" role="alert" style={{ background: '#fff7ed', borderColor: '#fdba74', color: '#9a3412' }}>
+          ユーザーIDを設定してください。フレンド検索などで使われます。
+        </div>
+      )}
+
       <label className="field">
         <span className="field-label">
           ニックネーム <span className="req">*</span>
@@ -74,6 +109,25 @@ export default function RegisterScreen({ onDone }) {
           placeholder="例：たろう"
           maxLength={20}
         />
+      </label>
+
+      <label className="field">
+        <span className="field-label">
+          ユーザーID <span className="req">*</span>
+        </span>
+        <input
+          type="text"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          placeholder="例：taro_baseball"
+          maxLength={20}
+          autoCapitalize="off"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          pattern="[a-zA-Z0-9_-]{3,20}"
+        />
+        <span className="field-hint">{USER_ID_RULE}（重複不可）</span>
       </label>
 
       <div className="field">
@@ -172,7 +226,7 @@ export default function RegisterScreen({ onDone }) {
 
       {error && <div className="error">{error}</div>}
 
-      <button className="submit" onClick={submit}>
+      <button className="submit" onClick={submit} disabled={submitting}>
         {isEdit ? '保存する' : 'はじめる'}
       </button>
     </div>
