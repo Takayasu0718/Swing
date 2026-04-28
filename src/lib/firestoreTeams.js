@@ -22,15 +22,18 @@ function newId() {
   return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export async function createFsTeam({ name, description, prefecture, municipality }) {
+export async function createFsTeam({ name, description, prefecture, municipality, handle }) {
   const uid = await authReady
   if (!uid || !db) return null
   try {
+    const trimmedHandle = (handle || '').trim()
     const ref = await addDoc(collection(db, 'teams'), {
       name: (name || '').trim(),
       description: (description || '').trim().slice(0, 50),
       prefecture: prefecture || '',
       municipality: municipality || '',
+      handle: trimmedHandle,
+      handleLower: trimmedHandle.toLowerCase(),
       captainId: uid,
       memberIds: [uid],
       friendTeamIds: [],

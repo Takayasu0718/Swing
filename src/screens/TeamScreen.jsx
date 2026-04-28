@@ -10,8 +10,10 @@ import {
   sendFriendTeamRequest,
 } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
-import { ACTIVITY_TYPES } from '../storage/schema.js'
+import { ACTIVITY_TYPES, TEAM_HANDLE_REGEX, TEAM_HANDLE_RULE } from '../storage/schema.js'
 import { PREFECTURES, MUNICIPALITIES_BY_PREF, OTHER_OPTION } from '../lib/jpRegions.js'
+import { authReady } from '../lib/firebase.js'
+import { reserveTeamHandle } from '../lib/firestoreTeamHandle.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
@@ -80,8 +82,14 @@ export default function TeamScreen() {
   const myMemberId = isFsTeam ? myUid : me.id
 
   const q = query.trim()
-  const localSearchResults = q ? teams.list().filter((t) => matchesJa(t.name, q)) : []
-  const fsSearchResults = q ? allFsTeams.filter((t) => matchesJa(t.name || '', q)) : []
+  const qLower = q.toLowerCase()
+  const matchesTeam = (t) => {
+    if (matchesJa(t.name || '', q)) return true
+    if (t.handle && t.handle.toLowerCase().includes(qLower)) return true
+    return false
+  }
+  const localSearchResults = q ? teams.list().filter(matchesTeam) : []
+  const fsSearchResults = q ? allFsTeams.filter(matchesTeam) : []
 
   if (!myTeam) {
     const dropdown = q && (
@@ -98,6 +106,7 @@ export default function TeamScreen() {
                 <div className="search-info">
                   <div className="activity-name">
                     {t.name}
+                    {t.handle && <span className="user-handle">@{t.handle}</span>}
                     <span className="real-tag">実チーム</span>
                   </div>
                   <div className="search-sub">{t.description}</div>
@@ -121,7 +130,10 @@ export default function TeamScreen() {
             return (
               <li key={t.id} className="search-row">
                 <div className="search-info">
-                  <div className="activity-name">{t.name}</div>
+                  <div className="activity-name">
+                    {t.name}
+                    {t.handle && <span className="user-handle">@{t.handle}</span>}
+                  </div>
                   <div className="search-sub">{t.description}</div>
                 </div>
                 {outgoing ? (
@@ -171,12 +183,14 @@ export default function TeamScreen() {
               description: payload.description,
               prefecture: payload.prefecture,
               municipality: payload.municipality,
+              handle: payload.handle,
             })
             if (newId) {
               await refreshAllTeams()
             } else {
               teams.create({
                 name: payload.name,
+                handle: payload.handle,
                 description: payload.description,
                 prefecture: payload.prefecture,
                 municipality: payload.municipality,
@@ -266,6 +280,7 @@ export default function TeamScreen() {
               <div className="search-info">
                 <div className="activity-name">
                   {t.name}
+                  {t.handle && <span className="user-handle">@{t.handle}</span>}
                   <span className="real-tag">実チーム</span>
                 </div>
                 <div className="search-sub">{t.description}</div>
@@ -308,7 +323,10 @@ export default function TeamScreen() {
           return (
             <li key={t.id} className="search-row">
               <div className="search-info">
-                <div className="activity-name">{t.name}</div>
+                <div className="activity-name">
+                  {t.name}
+                  {t.handle && <span className="user-handle">@{t.handle}</span>}
+                </div>
                 <div className="search-sub">{t.description}</div>
               </div>
               {joined ? (
@@ -648,7 +666,10 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
     return (
       <section className="info-card">
         <div className="card-title card-title-row">
-          <span>{team.name}</span>
+          <span>
+            {team.name}
+            {team.handle && <span className="user-handle">@{team.handle}</span>}
+          </span>
           {canEdit && (
             <button type="button" className="small-btn card-edit-btn" onClick={onStartEdit}>編集</button>
           )}
@@ -922,17 +943,22 @@ function MatchForm({ members, match, onCancel, onSave }) {
 
 function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
   const [name, setName] = useState('')
+  const [handle, setHandle] = useState('')
   const [description, setDescription] = useState('')
   const [prefecture, setPrefecture] = useState('')
   const [municipalitySel, setMunicipalitySel] = useState('')
   const [municipalityCustom, setMunicipalityCustom] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const reset = () => {
     setName('')
+    setHandle('')
     setDescription('')
     setPrefecture('')
     setMunicipalitySel('')
     setMunicipalityCustom('')
+    setError('')
   }
 
   if (!creating) {
@@ -950,16 +976,51 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
   const municipalities = prefecture ? MUNICIPALITIES_BY_PREF[prefecture] || [] : []
   const municipalityValue = municipalitySel === OTHER_OPTION ? municipalityCustom.trim() : municipalitySel
 
-  const submit = () => {
+  const submit = async () => {
+    if (submitting) return
+    setError('')
     const trimmed = name.trim()
-    if (!trimmed) return
-    onCreate({
-      name: trimmed,
-      description: description.trim().slice(0, 50),
-      prefecture: prefecture || '',
-      municipality: municipalityValue || '',
-    })
-    reset()
+    if (!trimmed) {
+      setError('チーム名を入力してください')
+      return
+    }
+    const trimmedHandle = handle.trim()
+    if (!trimmedHandle) {
+      setError('チームIDを入力してください')
+      return
+    }
+    if (!TEAM_HANDLE_REGEX.test(trimmedHandle)) {
+      setError(`チームIDは ${TEAM_HANDLE_RULE} で入力してください`)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      // Firestore で一意性を担保（認証済みのとき）
+      const myUid = await authReady
+      if (myUid) {
+        const result = await reserveTeamHandle(trimmedHandle, myUid)
+        if (!result.ok) {
+          if (result.reason === 'taken') {
+            setError('このチームIDはすでに使われています')
+          } else {
+            setError('チームIDの予約に失敗しました。時間をおいて再度お試しください。')
+          }
+          return
+        }
+      }
+
+      onCreate({
+        name: trimmed,
+        handle: trimmedHandle,
+        description: description.trim().slice(0, 50),
+        prefecture: prefecture || '',
+        municipality: municipalityValue || '',
+      })
+      reset()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -974,6 +1035,22 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
           maxLength={30}
           placeholder="例: スイングドラゴンズ"
         />
+      </label>
+      <label className="field">
+        <span className="field-label">チームID <span className="req">*</span></span>
+        <input
+          type="text"
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          maxLength={20}
+          autoCapitalize="off"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          pattern="[a-zA-Z0-9_-]{3,20}"
+          placeholder="例: swing_dragons"
+        />
+        <span className="field-hint">{TEAM_HANDLE_RULE}（重複不可）</span>
       </label>
       <label className="field">
         <span className="field-label">都道府県</span>
@@ -1029,12 +1106,17 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
         />
         <span className="char-count">{description.length} / 50</span>
       </label>
+      {error && <div className="error">{error}</div>}
       <div className="btn-row">
         <button className="outline-btn" onClick={() => { reset(); onCancel() }}>
           キャンセル
         </button>
-        <button className="submit" onClick={submit} disabled={!name.trim()}>
-          作成
+        <button
+          className="submit"
+          onClick={submit}
+          disabled={submitting || !name.trim() || !handle.trim()}
+        >
+          {submitting ? '作成中...' : '作成'}
         </button>
       </div>
     </section>
