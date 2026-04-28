@@ -23,6 +23,7 @@ import {
   addFsMatch,
   updateFsTeam,
   removeFsTeamMember,
+  deleteFsTeam,
 } from '../lib/firestoreTeams.js'
 import {
   sendFsJoinRequest,
@@ -256,6 +257,20 @@ export default function TeamScreen() {
     } else {
       const next = (myTeam.memberIds || []).filter((id) => id !== me.id)
       teams.update(myTeam.id, { memberIds: next })
+    }
+  }
+
+  const handleDeleteTeam = () => {
+    if (!myTeam) return
+    if (myTeam.captainId !== myMemberId) {
+      alert('キャプテンのみが抹消できます')
+      return
+    }
+    if (!confirm(`「${myTeam.name}」を抹消しますか？\n所属メンバー全員が無所属になり、元に戻せません。`)) return
+    if (isFsTeam) {
+      deleteFsTeam(myTeam.id)
+    } else {
+      teams.remove(myTeam.id)
     }
   }
 
@@ -616,6 +631,13 @@ export default function TeamScreen() {
       <section className="info-card">
         <button className="danger-btn" onClick={handleLeaveTeam}>
           チームを脱退する
+        </button>
+        <button
+          className="danger-btn"
+          onClick={handleDeleteTeam}
+          style={{ marginTop: '0.5rem' }}
+        >
+          チームを抹消する
         </button>
       </section>
     </div>
