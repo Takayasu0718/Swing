@@ -1456,6 +1456,12 @@ body {
   line-height: 1.4;
 }
 
+.team-location {
+  font-size: 0.85rem;
+  color: var(--slate-500);
+  margin-bottom: 0.4rem;
+}
+
 .next-match {
   background: var(--blue-50);
   border-radius: 10px;

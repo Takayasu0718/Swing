@@ -11,6 +11,7 @@ import {
 } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
+import { PREFECTURES, MUNICIPALITIES_BY_PREF, OTHER_OPTION } from '../lib/jpRegions.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
@@ -164,13 +165,20 @@ export default function TeamScreen() {
           onCancel={() => setCreatingTeam(false)}
           onCreate={async (payload) => {
             // Firestore に作成（認証済みなら）。失敗時 / 未認証時は localStorage にフォールバック
-            const newId = await createFsTeam({ name: payload.name, description: payload.description })
+            const newId = await createFsTeam({
+              name: payload.name,
+              description: payload.description,
+              prefecture: payload.prefecture,
+              municipality: payload.municipality,
+            })
             if (newId) {
               await refreshAllTeams()
             } else {
               teams.create({
                 name: payload.name,
                 description: payload.description,
+                prefecture: payload.prefecture,
+                municipality: payload.municipality,
                 captainId: me.id,
                 memberIds: [me.id],
                 friendTeamIds: [],
@@ -589,6 +597,8 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
     })
   }
 
+  const locationLabel = [team.prefecture, team.municipality].filter(Boolean).join(' ')
+
   if (!editing) {
     return (
       <section className="info-card">
@@ -598,6 +608,7 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
             <button type="button" className="small-btn card-edit-btn" onClick={onStartEdit}>編集</button>
           )}
         </div>
+        {locationLabel && <div className="team-location">📍 {locationLabel}</div>}
         {team.description && <div className="team-desc">{team.description}</div>}
         <div className="next-match">
           <div className="next-match-label">次の試合</div>
@@ -818,10 +829,16 @@ function MatchForm({ members, match, onCancel, onSave }) {
 function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [prefecture, setPrefecture] = useState('')
+  const [municipalitySel, setMunicipalitySel] = useState('')
+  const [municipalityCustom, setMunicipalityCustom] = useState('')
 
   const reset = () => {
     setName('')
     setDescription('')
+    setPrefecture('')
+    setMunicipalitySel('')
+    setMunicipalityCustom('')
   }
 
   if (!creating) {
@@ -836,10 +853,18 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
     )
   }
 
+  const municipalities = prefecture ? MUNICIPALITIES_BY_PREF[prefecture] || [] : []
+  const municipalityValue = municipalitySel === OTHER_OPTION ? municipalityCustom.trim() : municipalitySel
+
   const submit = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    onCreate({ name: trimmed, description: description.trim() })
+    onCreate({
+      name: trimmed,
+      description: description.trim().slice(0, 50),
+      prefecture: prefecture || '',
+      municipality: municipalityValue || '',
+    })
     reset()
   }
 
@@ -857,14 +882,58 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
         />
       </label>
       <label className="field">
-        <span className="field-label">チーム紹介文</span>
+        <span className="field-label">都道府県</span>
+        <select
+          value={prefecture}
+          onChange={(e) => {
+            setPrefecture(e.target.value)
+            setMunicipalitySel('')
+            setMunicipalityCustom('')
+          }}
+        >
+          <option value="">選択してください</option>
+          {PREFECTURES.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      </label>
+      {prefecture && (
+        <label className="field">
+          <span className="field-label">市町村</span>
+          <select
+            value={municipalitySel}
+            onChange={(e) => setMunicipalitySel(e.target.value)}
+          >
+            <option value="">選択してください</option>
+            {municipalities.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+            <option value={OTHER_OPTION}>{OTHER_OPTION}</option>
+          </select>
+        </label>
+      )}
+      {municipalitySel === OTHER_OPTION && (
+        <label className="field">
+          <span className="field-label">市町村（直接入力）</span>
+          <input
+            type="text"
+            value={municipalityCustom}
+            onChange={(e) => setMunicipalityCustom(e.target.value)}
+            maxLength={30}
+            placeholder="例: 桜台町"
+          />
+        </label>
+      )}
+      <label className="field">
+        <span className="field-label">チーム紹介文（50文字以内）</span>
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value.slice(0, 50))}
           rows={2}
-          maxLength={80}
+          maxLength={50}
           placeholder="例: 毎日コツコツ素振りで強くなるチーム！"
         />
+        <span className="char-count">{description.length} / 50</span>
       </label>
       <div className="btn-row">
         <button className="outline-btn" onClick={() => { reset(); onCancel() }}>
