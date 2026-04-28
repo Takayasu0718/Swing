@@ -81,7 +81,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
           .filter(Boolean)
         const fsTeammateUids = (myFsTeam?.memberIds ?? []).filter((u) => u !== myUid)
         const fsRecipientUids = Array.from(new Set([...fsFriendUids, ...fsTeammateUids]))
-        onGoalRaised(savedId, prevGoal, data.dailyGoal, fsRecipientUids)
+        onGoalRaised(savedId, prevGoal, data.dailyGoal, fsRecipientUids, myFsTeam?.id ?? null)
       }
       onDone?.()
     } finally {

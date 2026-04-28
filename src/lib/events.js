@@ -17,6 +17,7 @@ import { levelFromDays, stageIndex } from './dragon.js'
 import { countAchievementDays, computeStreak, todayKey } from './date.js'
 import { syncSwingActivity } from './firestoreSync.js'
 import { createFsNotification } from './firestoreNotifications.js'
+import { createFsActivity } from './firestoreActivities.js'
 
 function notify(recipientId, data) {
   const s = settings.get(recipientId)
@@ -35,7 +36,8 @@ function socialRecipients(userId) {
 
 // Called after missions.approve() succeeds for the given user on today.
 // fsRecipientUids: 実ユーザー（Firestore）の通知先 uid のリスト
-export function onMissionApproved(userId, fsRecipientUids = []) {
+// fsTeamId: Firestore チームに所属している場合の team id
+export function onMissionApproved(userId, fsRecipientUids = [], fsTeamId = null) {
   const user = users.get(userId)
   if (!user) return
   const team = teams.findByMember(userId)
@@ -50,6 +52,13 @@ export function onMissionApproved(userId, fsRecipientUids = []) {
     type: ACTIVITY_TYPES.SWING_ACHIEVED,
     content: '今日の素振りミッションを達成！',
     teamId: team?.id ?? null,
+  })
+
+  // Firestore activity 作成（実ユーザー間タイムライン用）
+  createFsActivity({
+    type: ACTIVITY_TYPES.SWING_ACHIEVED,
+    content: '今日の素振りミッションを達成！',
+    teamId: fsTeamId,
   })
 
   // Firestore: users/{uid}/activities に素振り達成を1件追記（best-effort、失敗してもUIには影響なし）
@@ -82,6 +91,11 @@ export function onMissionApproved(userId, fsRecipientUids = []) {
       content: `連続${streak}日達成！！`,
       teamId: team?.id ?? null,
     })
+    createFsActivity({
+      type: ACTIVITY_TYPES.SWING_ACHIEVED,
+      content: `連続${streak}日達成！！`,
+      teamId: fsTeamId,
+    })
     notify(userId, {
       type: 'streak_milestone',
       fromUserId: null,
@@ -107,19 +121,25 @@ export function onMissionApproved(userId, fsRecipientUids = []) {
 
   // Level up — タイムラインへのアクティビティ投稿のみ（自分宛通知は出さない）
   if (levelAfter > levelBefore) {
+    const content = stageIndex(levelAfter) > stageIndex(levelBefore)
+      ? `ドラゴンが進化！ Lv.${levelAfter} になった！`
+      : `スイングドラゴンが Lv.${levelAfter} になった！`
     activities.create({
       userId,
       type: ACTIVITY_TYPES.LEVEL_UP,
-      content: stageIndex(levelAfter) > stageIndex(levelBefore)
-        ? `ドラゴンが進化！ Lv.${levelAfter} になった！`
-        : `スイングドラゴンが Lv.${levelAfter} になった！`,
+      content,
       teamId: team?.id ?? null,
+    })
+    createFsActivity({
+      type: ACTIVITY_TYPES.LEVEL_UP,
+      content,
+      teamId: fsTeamId,
     })
   }
 }
 
 // Only fires when goal was increased (old -> new). First registration has no oldGoal -> no-op.
-export function onGoalRaised(userId, oldGoal, newGoal, fsRecipientUids = []) {
+export function onGoalRaised(userId, oldGoal, newGoal, fsRecipientUids = [], fsTeamId = null) {
   if (!newGoal || !oldGoal || newGoal <= oldGoal) return
   const user = users.get(userId)
   if (!user) return
@@ -130,6 +150,11 @@ export function onGoalRaised(userId, oldGoal, newGoal, fsRecipientUids = []) {
     type: ACTIVITY_TYPES.GOAL_RAISED,
     content: `目標を${newGoal}回にアップ！`,
     teamId: team?.id ?? null,
+  })
+  createFsActivity({
+    type: ACTIVITY_TYPES.GOAL_RAISED,
+    content: `目標を${newGoal}回にアップ！`,
+    teamId: fsTeamId,
   })
 
   for (const rid of socialRecipients(userId)) {

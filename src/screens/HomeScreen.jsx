@@ -202,7 +202,7 @@ export default function HomeScreen() {
       fsRecipients: fsRecipientUids.length,
     })
     missions.approve(user.id, today)
-    onMissionApproved(user.id, fsRecipientUids)
+    onMissionApproved(user.id, fsRecipientUids, myFsTeam?.id ?? null)
   }
 
   return (

@@ -18,6 +18,8 @@ import { useProfile } from '../hooks/useProfile.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
+import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 import {
   createFsTeam,
   addFsMatch,
@@ -69,6 +71,7 @@ export default function TeamScreen() {
     refreshAllTeams,
   } = useFirestoreTeams()
   const { allUsers } = useFirestoreFriends()
+  const { activities: allFsActivities } = useFirestoreActivities()
   const [query, setQuery] = useState('')
   const [editingTeam, setEditingTeam] = useState(false)
   const [editingMatchId, setEditingMatchId] = useState(null)
@@ -222,16 +225,31 @@ export default function TeamScreen() {
   }
   const members = (myTeam.memberIds || []).map(lookupMember).filter(Boolean)
   const friendTeamIds = myTeam.friendTeamIds || []
-  const friendTeamActivities = friendTeamIds.flatMap((fid) => activities.listByTeam(fid))
+  const friendTeamActivities = friendTeamIds
+    .flatMap((fid) => activities.listByTeam(fid))
+    .map((a) => ({ ...a, source: 'local' }))
   const friendTeams = friendTeamIds.map((fid) => teams.get(fid)).filter(Boolean)
   // Exclude match_result from teammates timeline — shown separately in 試合結果 card.
-  const teamActivities = activities
+  const localTeamActivities = activities
     .listByTeam(myTeam.id)
     .filter((a) => a.type !== ACTIVITY_TYPES.MATCH_RESULT)
+    .map((a) => ({ ...a, source: 'local' }))
+  const fsTeamActivities = isFsTeam
+    ? (allFsActivities || []).filter(
+        (a) =>
+          a.teamId === myTeam.id && a.type !== ACTIVITY_TYPES.MATCH_RESULT,
+      )
+    : []
+  const teamActivities = [...fsTeamActivities, ...localTeamActivities].sort((a, b) =>
+    a.createdAt < b.createdAt ? 1 : -1,
+  )
   // FS team では Firestore のチャットを使用、それ以外は localStorage（mock 互換）
   const teamChat = isFsTeam ? fsTeamChats : chats.listByTeam(myTeam.id)
 
-  const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
+  const handleLikeActivity = (a) => {
+    if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
+    else activities.toggleLike(a.id, me.id)
+  }
   const handleLikeChat = (id) => {
     if (isFsTeam) toggleFsChatLike(myTeam.id, id, myUid)
     else chats.toggleLike(id, me.id)

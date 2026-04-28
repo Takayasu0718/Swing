@@ -22,6 +22,7 @@ import {
   FirestoreNotificationsProvider,
   useFirestoreNotifications,
 } from './hooks/useFirestoreNotifications.jsx'
+import { FirestoreActivitiesProvider } from './hooks/useFirestoreActivities.jsx'
 import { markAllReadFsNotifications } from './lib/firestoreNotifications.js'
 
 const TABS = [
@@ -144,11 +145,13 @@ export default function App() {
     <ThemeProvider>
       <FirestoreFriendsProvider>
         <FirestoreTeamsProvider>
-          <FirestoreNotificationsProvider>
-            <ProfileProvider>
-              <AppShell />
-            </ProfileProvider>
-          </FirestoreNotificationsProvider>
+          <FirestoreActivitiesProvider>
+            <FirestoreNotificationsProvider>
+              <ProfileProvider>
+                <AppShell />
+              </ProfileProvider>
+            </FirestoreNotificationsProvider>
+          </FirestoreActivitiesProvider>
         </FirestoreTeamsProvider>
       </FirestoreFriendsProvider>
     </ThemeProvider>

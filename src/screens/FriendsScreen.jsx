@@ -13,11 +13,14 @@ import SearchBox from '../components/SearchBox.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
+import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 
 export default function FriendsScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
   const { myUid, friendships: fsFriendships, usersByUid, allUsers } = useFirestoreFriends()
+  const { activities: allFsActivities } = useFirestoreActivities()
   const [query, setQuery] = useState('')
   if (!me) return null
 
@@ -62,8 +65,20 @@ export default function FriendsScreen() {
       })
     : []
 
-  const feed = activities.listByUsers(friendIds)
-  const handleLike = (activityId) => activities.toggleLike(activityId, me.id)
+  const localFeed = activities.listByUsers(friendIds).map((a) => ({ ...a, source: 'local' }))
+  const fsAcceptedFriendUids = fsAccepted
+    .map((f) => f.participants?.find((p) => p !== myUid))
+    .filter(Boolean)
+  const fsFriendActivities = (allFsActivities || []).filter((a) =>
+    fsAcceptedFriendUids.includes(a.userId),
+  )
+  const feed = [...fsFriendActivities, ...localFeed].sort((a, b) =>
+    a.createdAt < b.createdAt ? 1 : -1,
+  )
+  const handleLike = (a) => {
+    if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
+    else activities.toggleLike(a.id, me.id)
+  }
 
   const dropdown = q && (
     (localResults.length === 0 && remoteResults.length === 0) ? (

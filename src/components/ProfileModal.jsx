@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
+import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
@@ -13,6 +15,7 @@ import ActivityItem from './ActivityItem.jsx'
 export default function ProfileModal() {
   const { viewUserId, closeProfile } = useProfile()
   const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
+  const { activities: fsActivities } = useFirestoreActivities()
   const me = users.getCurrent()
   const modalRef = useRef(null)
   const closeRef = useRef(null)
@@ -83,7 +86,11 @@ export default function ProfileModal() {
   const streak = computeStreak(userMissions)
   const level = levelFromDays(days)
 
-  const userActivities = isFsUser ? [] : activities.listByUsers([user.id]).slice(0, 10)
+  const localActs = activities.listByUsers([user.id]).map((a) => ({ ...a, source: 'local' }))
+  const fsActs = isFsUser ? fsActivities.filter((a) => a.userId === user.id) : []
+  const userActivities = [...fsActs, ...localActs]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, 10)
 
   // フレンド関係: Firestore（実ユーザー対象）優先、なければ localStorage を確認
   let isFriend = false
@@ -107,7 +114,10 @@ export default function ProfileModal() {
     }
   }
 
-  const handleLikeActivity = (id) => activities.toggleLike(id, me.id)
+  const handleLikeActivity = (a) => {
+    if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
+    else activities.toggleLike(a.id, me.id)
+  }
   const handleSendRequest = () => {
     if (isFsUser) sendFriendRequestFs(user.id)
     else sendFriendRequest(me.id, user.id)
