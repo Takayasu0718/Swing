@@ -15,6 +15,27 @@ import {
   arrayUnion,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
+import { createFsNotification } from './firestoreNotifications.js'
+
+async function fetchTeam(teamId) {
+  if (!db || !teamId) return null
+  try {
+    const snap = await getDoc(doc(db, 'teams', teamId))
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchNickname(uid) {
+  if (!db || !uid) return ''
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    return snap.exists() ? snap.data().nickname || '' : ''
+  } catch {
+    return ''
+  }
+}
 
 export async function sendFsJoinRequest(teamId) {
   const uid = await authReady
@@ -38,6 +59,16 @@ export async function sendFsJoinRequest(teamId) {
       status: 'pending',
       createdAt: serverTimestamp(),
     })
+    const team = await fetchTeam(teamId)
+    const myName = await fetchNickname(uid)
+    if (team?.captainId) {
+      await createFsNotification({
+        userId: team.captainId,
+        type: 'team_join_request',
+        content: `${myName || '誰か'}さんが「${team.name || 'チーム'}」への加入を申請しています`,
+        requestId: ref.id,
+      })
+    }
     console.log('[teamRequests] join sent', ref.id)
     return ref.id
   } catch (e) {
@@ -68,6 +99,16 @@ export async function sendFsFriendTeamRequest(fromTeamId, toTeamId) {
       status: 'pending',
       createdAt: serverTimestamp(),
     })
+    const fromTeam = await fetchTeam(fromTeamId)
+    const toTeam = await fetchTeam(toTeamId)
+    if (toTeam?.captainId) {
+      await createFsNotification({
+        userId: toTeam.captainId,
+        type: 'friend_team_request',
+        content: `「${fromTeam?.name || 'チーム'}」からフレンドチーム申請が届きました`,
+        requestId: ref.id,
+      })
+    }
     console.log('[teamRequests] friend_team sent', ref.id)
     return ref.id
   } catch (e) {
@@ -89,6 +130,12 @@ export async function acceptFsTeamRequest(requestId) {
         memberIds: arrayUnion(r.fromUid),
         updatedAt: serverTimestamp(),
       })
+      const team = await fetchTeam(r.teamId)
+      await createFsNotification({
+        userId: r.fromUid,
+        type: 'team_invite',
+        content: `「${team?.name || 'チーム'}」への加入が承認されました`,
+      })
     } else if (r.kind === 'friend_team' && r.fromTeamId) {
       await updateDoc(doc(db, 'teams', r.fromTeamId), {
         friendTeamIds: arrayUnion(r.teamId),
@@ -97,6 +144,12 @@ export async function acceptFsTeamRequest(requestId) {
       await updateDoc(doc(db, 'teams', r.teamId), {
         friendTeamIds: arrayUnion(r.fromTeamId),
         updatedAt: serverTimestamp(),
+      })
+      const toTeam = await fetchTeam(r.teamId)
+      await createFsNotification({
+        userId: r.fromUid,
+        type: 'friend_team_request',
+        content: `「${toTeam?.name || 'チーム'}」がフレンドチーム申請を承認しました`,
       })
     }
     await updateDoc(reqRef, { status: 'accepted', processedAt: serverTimestamp() })
