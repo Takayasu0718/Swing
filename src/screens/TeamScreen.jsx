@@ -588,11 +588,34 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
   const [captainId, setCaptainId] = useState(team.captainId)
   const [nm, setNm] = useState(team.nextMatch || { tournament: '', date: '', opponent: '' })
 
+  // 都道府県・市町村の編集状態。既存の市町村が prefecture の MUNICIPALITIES に
+  // 含まれない場合は「その他」扱いにしてカスタム入力欄を出す。
+  const [prefecture, setPrefecture] = useState(team.prefecture || '')
+  const initialMuniIsKnown =
+    team.prefecture &&
+    (MUNICIPALITIES_BY_PREF[team.prefecture] || []).includes(team.municipality)
+  const [municipalitySel, setMunicipalitySel] = useState(
+    team.municipality
+      ? initialMuniIsKnown
+        ? team.municipality
+        : OTHER_OPTION
+      : '',
+  )
+  const [municipalityCustom, setMunicipalityCustom] = useState(
+    initialMuniIsKnown ? '' : team.municipality || '',
+  )
+
+  const municipalities = prefecture ? MUNICIPALITIES_BY_PREF[prefecture] || [] : []
+  const municipalityValue =
+    municipalitySel === OTHER_OPTION ? municipalityCustom.trim() : municipalitySel
+
   const save = () => {
     onSave({
       name: name.trim() || team.name,
-      description: description.trim(),
+      description: description.trim().slice(0, 50),
       captainId,
+      prefecture: prefecture || '',
+      municipality: municipalityValue || '',
       nextMatch: nm.tournament || nm.opponent || nm.date ? nm : null,
     })
   }
@@ -635,9 +658,58 @@ function TeamInfoCard({ team, canEdit, editing, onStartEdit, onCancelEdit, onSav
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
       </label>
       <label className="field">
-        <span className="field-label">チーム紹介文</span>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={80} />
+        <span className="field-label">チーム紹介文（50文字以内）</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value.slice(0, 50))}
+          rows={2}
+          maxLength={50}
+        />
+        <span className="char-count">{description.length} / 50</span>
       </label>
+      <label className="field">
+        <span className="field-label">都道府県</span>
+        <select
+          value={prefecture}
+          onChange={(e) => {
+            setPrefecture(e.target.value)
+            setMunicipalitySel('')
+            setMunicipalityCustom('')
+          }}
+        >
+          <option value="">選択してください</option>
+          {PREFECTURES.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      </label>
+      {prefecture && (
+        <label className="field">
+          <span className="field-label">市町村</span>
+          <select
+            value={municipalitySel}
+            onChange={(e) => setMunicipalitySel(e.target.value)}
+          >
+            <option value="">選択してください</option>
+            {municipalities.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+            <option value={OTHER_OPTION}>{OTHER_OPTION}</option>
+          </select>
+        </label>
+      )}
+      {municipalitySel === OTHER_OPTION && (
+        <label className="field">
+          <span className="field-label">市町村（直接入力）</span>
+          <input
+            type="text"
+            value={municipalityCustom}
+            onChange={(e) => setMunicipalityCustom(e.target.value)}
+            maxLength={30}
+            placeholder="例: 桜台町"
+          />
+        </label>
+      )}
       <label className="field">
         <span className="field-label">キャプテン</span>
         <select value={captainId} onChange={(e) => setCaptainId(e.target.value)}>
