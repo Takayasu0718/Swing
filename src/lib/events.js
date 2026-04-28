@@ -16,6 +16,7 @@ import { ACTIVITY_TYPES } from '../storage/schema.js'
 import { levelFromDays, stageIndex } from './dragon.js'
 import { countAchievementDays, computeStreak, todayKey } from './date.js'
 import { syncSwingActivity } from './firestoreSync.js'
+import { createFsNotification } from './firestoreNotifications.js'
 
 function notify(recipientId, data) {
   const s = settings.get(recipientId)
@@ -33,7 +34,8 @@ function socialRecipients(userId) {
 }
 
 // Called after missions.approve() succeeds for the given user on today.
-export function onMissionApproved(userId) {
+// fsRecipientUids: 実ユーザー（Firestore）の通知先 uid のリスト
+export function onMissionApproved(userId, fsRecipientUids = []) {
   const user = users.get(userId)
   if (!user) return
   const team = teams.findByMember(userId)
@@ -53,13 +55,22 @@ export function onMissionApproved(userId) {
   // Firestore: users/{uid}/activities に素振り達成を1件追記（best-effort、失敗してもUIには影響なし）
   syncSwingActivity({ swingCount: user.dailyGoal ?? 0, date: todayKey() })
 
-  // Self-notification は出さず、フレンド+チームメンバーに通知。
+  // Self-notification は出さず、フレンド+チームメンバー(localStorage)に通知。
   for (const rid of socialRecipients(userId)) {
     notify(rid, {
       type: 'swing_complete',
       fromUserId: userId,
       content: `${user.nickname}さんが今日の素振りミッションを達成しました！`,
       activityId: activity.id,
+    })
+  }
+
+  // Firestore 実ユーザー宛に通知書き込み
+  for (const fsUid of fsRecipientUids) {
+    createFsNotification({
+      userId: fsUid,
+      type: 'swing_complete',
+      content: `${user.nickname}さんが今日の素振りミッションを達成しました！`,
     })
   }
 
@@ -83,6 +94,13 @@ export function onMissionApproved(userId) {
         fromUserId: userId,
         content: `${user.nickname}さんが連続${streak}日達成！おめでとう！`,
         activityId: streakActivity.id,
+      })
+    }
+    for (const fsUid of fsRecipientUids) {
+      createFsNotification({
+        userId: fsUid,
+        type: 'streak_milestone',
+        content: `${user.nickname}さんが連続${streak}日達成！おめでとう！`,
       })
     }
   }

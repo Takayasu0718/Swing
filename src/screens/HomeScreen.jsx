@@ -8,6 +8,7 @@ import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { loadFriendRanking } from '../lib/firestoreRanking.js'
 import EmptyState from '../components/EmptyState.jsx'
 
@@ -95,8 +96,16 @@ function computeAnalytics(completedMissions) {
 export default function HomeScreen() {
   const user = users.getCurrent()
   const { openProfile } = useProfile()
-  const { myUid, allUsers } = useFirestoreFriends()
+  const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
+  const { myFsTeam } = useFirestoreTeams()
   const [ranking, setRanking] = useState([])
+
+  const fsFriendUids = (fsFriendships || [])
+    .filter((f) => f.status === 'accepted')
+    .map((f) => f.participants?.find((p) => p !== myUid))
+    .filter(Boolean)
+  const fsTeammateUids = (myFsTeam?.memberIds ?? []).filter((u) => u !== myUid)
+  const fsRecipientUids = Array.from(new Set([...fsFriendUids, ...fsTeammateUids]))
 
   const showAllUserRanking = user
     ? settings.get(user.id).display?.showAllUserRanking !== false
@@ -190,9 +199,10 @@ export default function HomeScreen() {
       action: 'approve',
       swingCount: user.dailyGoal,
       uid: auth?.currentUser?.uid,
+      fsRecipients: fsRecipientUids.length,
     })
     missions.approve(user.id, today)
-    onMissionApproved(user.id)
+    onMissionApproved(user.id, fsRecipientUids)
   }
 
   return (

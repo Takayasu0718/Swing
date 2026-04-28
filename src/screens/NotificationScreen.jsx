@@ -9,7 +9,14 @@ import {
   acceptFriendTeamRequest,
   declineFriendTeamRequest,
 } from '../lib/events.js'
+import {
+  markReadFsNotification,
+  markAllReadFsNotifications,
+  toggleLikeFsNotification,
+} from '../lib/firestoreNotifications.js'
 import { useProfile } from '../hooks/useProfile.jsx'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreNotifications } from '../hooks/useFirestoreNotifications.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 
 const TYPE_ICON = {
@@ -26,12 +33,10 @@ const TYPE_ICON = {
   goal_reminder: '⏰',
 }
 
-// Request types that have a pending record and show accept/decline buttons.
 const ACTIONABLE_TYPES = new Set(['friend_request', 'team_join_request', 'friend_team_request'])
 
 function resolveFriendshipId(n) {
   if (n.requestId) return n.requestId
-  // Fallback for older notifications missing requestId
   const f = friendships
     .list()
     .find((x) => x.fromUserId === n.fromUserId && x.toUserId === n.userId && x.status === 'pending')
@@ -55,28 +60,53 @@ function isRequestPending(n) {
 export default function NotificationScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
+  const { allUsers } = useFirestoreFriends()
+  const { items: fsItems, myUid } = useFirestoreNotifications()
   if (!me) return null
 
-  const items = notifications.listByUser(me.id)
-  const unread = items.filter((n) => !n.read).length
+  // localStorage の通知（source 識別用に local を付与）
+  const localItems = notifications
+    .listByUser(me.id)
+    .map((n) => ({ ...n, source: 'local' }))
+  // FS items are already shaped with source: 'fs' by the subscriber.
+  const merged = [...fsItems, ...localItems]
+  merged.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  const unread = merged.filter((n) => !n.read).length
 
-  const markRead = (id) => notifications.markRead(id)
-  const markAllRead = () => notifications.markAllRead(me.id)
-  // Like targets the underlying activity (spec: 通知一覧のアクティビティにもいいね可能).
+  const lookupFrom = (fromUserId) => {
+    if (!fromUserId) return null
+    const local = users.get(fromUserId)
+    if (local) return { id: local.id, nickname: local.nickname, avatarStamp: local.avatarStamp }
+    const fs = allUsers?.find((u) => u.uid === fromUserId)
+    if (fs) return { id: fs.uid, nickname: fs.nickname, avatarStamp: fs.avatarStamp }
+    return null
+  }
+
+  const markRead = (n) => {
+    if (n.source === 'fs') markReadFsNotification(n.id)
+    else notifications.markRead(n.id)
+  }
+
+  const markAllRead = () => {
+    notifications.markAllRead(me.id)
+    if (myUid) markAllReadFsNotifications(myUid)
+  }
+
   const toggleActivityLike = (activityId) => activities.toggleLike(activityId, me.id)
+  const toggleFsLike = (notifId) => toggleLikeFsNotification(notifId, myUid)
 
   const handleAccept = (n) => {
     if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
     else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
     else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
-    notifications.markRead(n.id)
+    markRead(n)
   }
 
   const handleDecline = (n) => {
     if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
     else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
     else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
-    notifications.markRead(n.id)
+    markRead(n)
   }
 
   return (
@@ -86,13 +116,13 @@ export default function NotificationScreen() {
         {unread > 0 && <span className="unread-pill">{unread}</span>}
       </h1>
 
-      {items.length > 0 && unread > 0 && (
+      {merged.length > 0 && unread > 0 && (
         <button className="outline-btn mark-all" onClick={markAllRead}>
           すべて既読にする
         </button>
       )}
 
-      {items.length === 0 ? (
+      {merged.length === 0 ? (
         <section className="info-card">
           <EmptyState
             icon="🔔"
@@ -102,19 +132,26 @@ export default function NotificationScreen() {
         </section>
       ) : (
         <ul className="notif-list">
-          {items.map((n) => {
-            const from = n.fromUserId ? users.get(n.fromUserId) : null
+          {merged.map((n) => {
+            const from = lookupFrom(n.fromUserId)
             const stamp = from ? getStamp(from.avatarStamp).label : (TYPE_ICON[n.type] || '🔔')
-            const activity = n.activityId ? activities.get(n.activityId) : null
-            const liked = activity?.likeUserIds?.includes(me.id) ?? false
-            const likeCount = activity?.likeUserIds?.length ?? 0
-            const actionable = ACTIONABLE_TYPES.has(n.type) && isRequestPending(n)
+            const activity =
+              n.source === 'local' && n.activityId ? activities.get(n.activityId) : null
+            const liked =
+              n.source === 'fs'
+                ? n.likeUserIds?.includes(myUid)
+                : activity?.likeUserIds?.includes(me.id) ?? false
+            const likeCount =
+              n.source === 'fs' ? n.likeUserIds?.length ?? 0 : activity?.likeUserIds?.length ?? 0
+            const actionable =
+              n.source === 'local' && ACTIONABLE_TYPES.has(n.type) && isRequestPending(n)
+            const showLike = n.source === 'fs' || !!activity
             return (
               <li
-                key={n.id}
+                key={`${n.source}-${n.id}`}
                 className={`notif-row ${n.read ? '' : 'unread'} ${from ? 'clickable' : ''}`}
                 onClick={() => {
-                  markRead(n.id)
+                  markRead(n)
                   if (from) openProfile(from.id)
                 }}
               >
@@ -152,11 +189,15 @@ export default function NotificationScreen() {
                     </div>
                   )}
                 </div>
-                {activity && (
+                {showLike && (
                   <button
                     type="button"
                     className={`like-btn ${liked ? 'liked' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); toggleActivityLike(activity.id) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (n.source === 'fs') toggleFsLike(n.id)
+                      else if (activity) toggleActivityLike(activity.id)
+                    }}
                     aria-pressed={liked}
                     aria-label="いいね"
                   >

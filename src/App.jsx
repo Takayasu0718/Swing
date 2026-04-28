@@ -18,6 +18,11 @@ import { ProfileProvider } from './hooks/useProfile.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
 import { FirestoreTeamsProvider } from './hooks/useFirestoreTeams.jsx'
+import {
+  FirestoreNotificationsProvider,
+  useFirestoreNotifications,
+} from './hooks/useFirestoreNotifications.jsx'
+import { markAllReadFsNotifications } from './lib/firestoreNotifications.js'
 
 const TABS = [
   { key: 'register', label: '登録', icon: '👤' },
@@ -28,12 +33,13 @@ const TABS = [
   { key: 'guardian', label: '保護者', icon: '👪' },
 ]
 
-export default function App() {
+function AppShell() {
   useStoreVersion()
   const current = users.getCurrent()
   const [tab, setTab] = useState('home')
   const needsUserIdSetup = !!current && !current.userId
   const activeTab = !current || needsUserIdSetup ? 'register' : tab
+  const { unread: fsUnread, myUid } = useFirestoreNotifications()
 
   useEffect(() => {
     if (current) {
@@ -42,7 +48,6 @@ export default function App() {
     }
   }, [current])
 
-  // 20:00 以降に未達成ミッションがあればリマインダー通知（1日1回）。
   useEffect(() => {
     if (!current) return
     maybeFireGoalReminder(current)
@@ -50,7 +55,6 @@ export default function App() {
     return () => clearInterval(interval)
   }, [current])
 
-  // Firebase anon auth + initial profile push + activities load (one-shot at mount).
   useEffect(() => {
     let cancelled = false
     ensureAnonymousAuth().then(async (uid) => {
@@ -61,8 +65,6 @@ export default function App() {
       const list = await loadSwingActivities()
       if (cancelled || !list) return
       const records = list.map((a) => {
-        // createdAt が Firebase Timestamp なら toDate() で ISO 文字列に変換。
-        // 取得不能なら date フィールド ("YYYY-MM-DD") を 12:00 に解釈してフォールバック。
         let ts = null
         if (a.createdAt && typeof a.createdAt.toDate === 'function') {
           ts = a.createdAt.toDate().toISOString()
@@ -87,11 +89,13 @@ export default function App() {
     }
   }, [])
 
-  const unreadCount = current ? notifications.unreadCount(current.id) : 0
+  const localUnread = current ? notifications.unreadCount(current.id) : 0
+  const unreadCount = localUnread + fsUnread
 
   const handleTabChange = (next) => {
-    if (next === 'notif' && current && unreadCount > 0) {
-      notifications.markAllRead(current.id)
+    if (next === 'notif' && current) {
+      if (localUnread > 0) notifications.markAllRead(current.id)
+      if (fsUnread > 0 && myUid) markAllReadFsNotifications(myUid)
     }
     setTab(next)
   }
@@ -121,22 +125,30 @@ export default function App() {
   }
 
   return (
+    <div className="app-root">
+      <div className="screen-container" key={activeTab}>{screen}</div>
+      <TabBar
+        tabs={TABS}
+        active={activeTab}
+        onChange={handleTabChange}
+        locked={!current || needsUserIdSetup ? 'register' : null}
+        badges={{ notif: unreadCount }}
+      />
+      <ProfileModal />
+    </div>
+  )
+}
+
+export default function App() {
+  return (
     <ThemeProvider>
       <FirestoreFriendsProvider>
         <FirestoreTeamsProvider>
-        <ProfileProvider>
-          <div className="app-root">
-            <div className="screen-container" key={activeTab}>{screen}</div>
-            <TabBar
-              tabs={TABS}
-              active={activeTab}
-              onChange={handleTabChange}
-              locked={!current || needsUserIdSetup ? 'register' : null}
-              badges={{ notif: unreadCount }}
-            />
-            <ProfileModal />
-          </div>
-        </ProfileProvider>
+          <FirestoreNotificationsProvider>
+            <ProfileProvider>
+              <AppShell />
+            </ProfileProvider>
+          </FirestoreNotificationsProvider>
         </FirestoreTeamsProvider>
       </FirestoreFriendsProvider>
     </ThemeProvider>
