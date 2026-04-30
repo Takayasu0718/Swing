@@ -15,6 +15,17 @@ import {
   getDoc,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
+import { createFsNotification } from './firestoreNotifications.js'
+
+async function fetchNickname(uid) {
+  if (!db || !uid) return ''
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    return snap.exists() ? snap.data().nickname || '' : ''
+  } catch {
+    return ''
+  }
+}
 
 function tsToIso(ts) {
   if (ts && typeof ts.toDate === 'function') return ts.toDate().toISOString()
@@ -98,10 +109,21 @@ export async function toggleFsActivityLike(activityId, uid) {
     const ref = doc(db, 'activities', activityId)
     const snap = await getDoc(ref)
     if (!snap.exists()) return
-    const liked = (snap.data().likeUserIds || []).includes(uid)
+    const data = snap.data()
+    const liked = (data.likeUserIds || []).includes(uid)
     await updateDoc(ref, {
       likeUserIds: liked ? arrayRemove(uid) : arrayUnion(uid),
     })
+    // 「いいね」した瞬間（unliked → liked）かつ自分の投稿でない時に投稿者へ通知
+    if (!liked && data.userId && data.userId !== uid) {
+      const likerName = await fetchNickname(uid)
+      await createFsNotification({
+        userId: data.userId,
+        type: 'like',
+        content: `${likerName || '誰か'}さんがあなたのアクティビティにいいねしました`,
+        activityId,
+      })
+    }
   } catch (e) {
     console.error('[firestoreActivities] toggleLike failed', e)
   }
