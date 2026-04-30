@@ -635,6 +635,11 @@ export default function TeamScreen() {
         onAdd={(match) => {
           if (isFsTeam) {
             addFsMatch(myTeam.id, match)
+            const mvpUser = members.find((m) => m.id === match.mvpPlayerId)
+            onMatchAdded(myTeam.id, match, {
+              fsTeamMemberUids: myTeam.memberIds || [],
+              mvpName: mvpUser?.nickname || '',
+            })
           } else {
             teams.addMatch(myTeam.id, match)
             onMatchAdded(myTeam.id, match)

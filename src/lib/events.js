@@ -175,27 +175,46 @@ export function onGoalRaised(userId, oldGoal, newGoal, fsRecipientUids = [], fsT
   }
 }
 
-export function onMatchAdded(teamId, match) {
+// onMatchAdded(teamId, match, options)
+//   options.fsTeamMemberUids: Firestore チームのメンバー uid（実ユーザー間通知用）
+//   options.mvpName: FS チームでは users.get(uid) では引けないので呼び出し側から渡す
+export function onMatchAdded(teamId, match, options = {}) {
+  const { fsTeamMemberUids = [], mvpName = '' } = options
   const team = teams.get(teamId)
-  if (!team) return
   const resultLabel = match.result === 'win' ? '勝利' : match.result === 'lose' ? '敗北' : '引分'
-  activities.create({
-    userId: team.captainId,
-    type: ACTIVITY_TYPES.MATCH_RESULT,
-    content: `vs ${match.opponent} ${match.score} ${resultLabel}`,
-    teamId,
-  })
 
-  if (match.mvpPlayerId) {
-    const mvp = users.get(match.mvpPlayerId)
-    if (mvp) {
-      for (const rid of team.memberIds || []) {
-        notify(rid, {
-          type: 'mvp_selected',
-          fromUserId: match.mvpPlayerId,
-          content: `${mvp.nickname}さんが${match.opponent}戦のMVPに選ばれました！おめでとうございます！`,
-        })
+  // localStorage（mock 用）パス
+  if (team) {
+    activities.create({
+      userId: team.captainId,
+      type: ACTIVITY_TYPES.MATCH_RESULT,
+      content: `vs ${match.opponent} ${match.score} ${resultLabel}`,
+      teamId,
+    })
+
+    if (match.mvpPlayerId) {
+      const mvp = users.get(match.mvpPlayerId)
+      if (mvp) {
+        for (const rid of team.memberIds || []) {
+          notify(rid, {
+            type: 'mvp_selected',
+            fromUserId: match.mvpPlayerId,
+            content: `${mvp.nickname}さんが${match.opponent}戦のMVPに選ばれました！おめでとうございます！`,
+          })
+        }
       }
+    }
+  }
+
+  // Firestore（実ユーザー間）パス
+  if (match.mvpPlayerId && fsTeamMemberUids.length > 0) {
+    const name = mvpName || users.get(match.mvpPlayerId)?.nickname || '誰か'
+    for (const uid of fsTeamMemberUids) {
+      createFsNotification({
+        userId: uid,
+        type: 'mvp_selected',
+        content: `${name}さんが${match.opponent}戦のMVPに選ばれました！おめでとうございます！`,
+      })
     }
   }
 }
