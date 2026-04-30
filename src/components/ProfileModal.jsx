@@ -6,8 +6,8 @@ import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
-import { countAchievementDays, computeStreak } from '../lib/date.js'
-import { levelFromDays, stageLabel } from '../lib/dragon.js'
+import { countAchievementDays, computeStreak, computeLongestStreak } from '../lib/date.js'
+import { levelFromProgress } from '../lib/dragon.js'
 import { sendFriendRequest } from '../lib/events.js'
 import { sendFriendRequestFs } from '../lib/firestoreFriends.js'
 import ActivityItem from './ActivityItem.jsx'
@@ -84,7 +84,8 @@ export default function ProfileModal() {
   const userMissions = isPlayer && !isFsUser ? missions.listByUser(user.id) : []
   const days = countAchievementDays(userMissions)
   const streak = computeStreak(userMissions)
-  const level = levelFromDays(days)
+  const longestStreak = computeLongestStreak(userMissions)
+  const level = levelFromProgress(days, longestStreak)
 
   const localActs = activities.listByUsers([user.id]).map((a) => ({ ...a, source: 'local' }))
   const fsActs = isFsUser ? fsActivities.filter((a) => a.userId === user.id) : []
@@ -186,7 +187,7 @@ export default function ProfileModal() {
             </div>
             <div className="stat-row">
               <dt>スイングドラゴン</dt>
-              <dd>Lv.{level} <span className="dragon-stage">{stageLabel(level)}</span></dd>
+              <dd>Lv.{level}</dd>
             </div>
           </dl>
         )}

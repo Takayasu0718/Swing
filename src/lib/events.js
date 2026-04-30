@@ -13,8 +13,8 @@ import {
   settings,
 } from '../storage/storage.js'
 import { ACTIVITY_TYPES } from '../storage/schema.js'
-import { levelFromDays, stageIndex } from './dragon.js'
-import { countAchievementDays, computeStreak, todayKey } from './date.js'
+import { levelFromProgress, stageIndex } from './dragon.js'
+import { countAchievementDays, computeStreak, computeLongestStreak, todayKey } from './date.js'
 import { syncSwingActivity } from './firestoreSync.js'
 import { createFsNotification } from './firestoreNotifications.js'
 import { createFsActivity } from './firestoreActivities.js'
@@ -44,8 +44,14 @@ export function onMissionApproved(userId, fsRecipientUids = [], fsTeamId = null)
   const ms = missions.listByUser(userId)
   const days = countAchievementDays(ms)
   const streak = computeStreak(ms)
-  const levelAfter = levelFromDays(days)
-  const levelBefore = levelFromDays(Math.max(0, days - 1))
+  const longestStreak = computeLongestStreak(ms)
+  // approve 直前の状態（今日のミッションを除外）でも longestStreak を再計算し、
+  // ストリーク基準のレベルアップ（Lv21+）も検知できるようにする。
+  const today = todayKey()
+  const msBefore = ms.filter((m) => !(m.date === today && m.completed))
+  const longestStreakBefore = computeLongestStreak(msBefore)
+  const levelAfter = levelFromProgress(days, longestStreak)
+  const levelBefore = levelFromProgress(Math.max(0, days - 1), longestStreakBefore)
 
   const activity = activities.create({
     userId,

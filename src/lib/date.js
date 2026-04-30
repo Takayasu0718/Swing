@@ -35,3 +35,25 @@ export function computeStreak(userMissions) {
 export function countAchievementDays(userMissions) {
   return userMissions.filter((m) => m.completed).length
 }
+
+// 過去含めた最長連続達成日数。
+export function computeLongestStreak(userMissions) {
+  const dayMs = 24 * 3600 * 1000
+  const uniqueDates = Array.from(
+    new Set(userMissions.filter((m) => m.completed).map((m) => m.date).filter(Boolean)),
+  ).sort()
+  let max = 0
+  let cur = 0
+  let prevTs = null
+  for (const d of uniqueDates) {
+    const ts = new Date(`${d}T00:00:00`).getTime()
+    if (prevTs !== null && Math.round((ts - prevTs) / dayMs) === 1) {
+      cur += 1
+    } else {
+      cur = 1
+    }
+    if (cur > max) max = cur
+    prevTs = ts
+  }
+  return max
+}

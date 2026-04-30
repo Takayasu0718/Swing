@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { users, missions, settings, __resetAll } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES, DISPLAY_SETTINGS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
-import { computeStreak, countAchievementDays } from '../lib/date.js'
-import { levelFromDays } from '../lib/dragon.js'
+import { computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
+import { levelFromProgress } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
 import { useTheme } from '../hooks/useTheme.jsx'
 
@@ -20,10 +20,12 @@ export default function GuardianScreen({ onNavigate }) {
     ? (() => {
         const ms = missions.listByUser(user.id)
         const days = countAchievementDays(ms)
+        const longestStreak = computeLongestStreak(ms)
+        const level = levelFromProgress(days, longestStreak)
         return {
           streak: computeStreak(ms),
           achievementDays: days,
-          level: levelFromDays(days),
+          level,
         }
       })()
     : null

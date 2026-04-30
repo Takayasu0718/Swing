@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { users, missions, teams, settings } from '../storage/storage.js'
 import { ROLES } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
-import { todayKey, computeStreak, countAchievementDays } from '../lib/date.js'
-import { levelFromDays, daysUntilNextLevel, stageImage, stageLabel } from '../lib/dragon.js'
+import { todayKey, computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
+import { levelFromProgress, daysUntilNextLevel, stageImage } from '../lib/dragon.js'
 import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
@@ -53,25 +53,6 @@ function computeWeeklyData(completedMissions) {
     if (slot) slot.count += m.goal ?? 0
   }
   return slots
-}
-
-function computeLongestStreak(completedMissions) {
-  const dayMs = 24 * 3600 * 1000
-  const uniqueDates = Array.from(new Set(completedMissions.map((m) => m.date).filter(Boolean))).sort()
-  let max = 0
-  let cur = 0
-  let prevTs = null
-  for (const d of uniqueDates) {
-    const ts = new Date(`${d}T00:00:00`).getTime()
-    if (prevTs !== null && Math.round((ts - prevTs) / dayMs) === 1) {
-      cur += 1
-    } else {
-      cur = 1
-    }
-    if (cur > max) max = cur
-    prevTs = ts
-  }
-  return max
 }
 
 function computeAnalytics(completedMissions) {
@@ -141,8 +122,9 @@ export default function HomeScreen() {
   const myMissions = missions.listByUser(user.id)
   const streak = computeStreak(myMissions)
   const achievementDays = countAchievementDays(myMissions)
-  const level = levelFromDays(achievementDays)
-  const daysToNext = daysUntilNextLevel(achievementDays)
+  const longestStreak = computeLongestStreak(myMissions)
+  const level = levelFromProgress(achievementDays, longestStreak)
+  const daysToNext = daysUntilNextLevel(achievementDays, longestStreak)
 
   const completedMissions = myMissions.filter((m) => m.completed)
   const todaySwingCount = completedMissions.find((m) => m.date === todayKey())?.goal ?? 0
@@ -361,9 +343,7 @@ export default function HomeScreen() {
           />
           <div className="dragon-info">
             <div className="dragon-name">スイングドラゴン</div>
-            <div className="dragon-level">
-              Lv.{level} <span className="dragon-stage">{stageLabel(level)}</span>
-            </div>
+            <div className="dragon-level">Lv.{level}</div>
             <div className="dragon-next">次のレベルまで あと <b>{daysToNext}</b> 日</div>
           </div>
         </section>
