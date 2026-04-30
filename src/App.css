@@ -97,7 +97,7 @@ body {
 }
 
 .app-root {
-  max-width: 480px;
+  max-width: 600px;
   margin: 0 auto;
   height: 100vh;
   display: flex;
