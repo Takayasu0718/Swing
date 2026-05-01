@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
 import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
@@ -15,6 +16,7 @@ import ActivityItem from './ActivityItem.jsx'
 export default function ProfileModal() {
   const { viewUserId, closeProfile } = useProfile()
   const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
+  const { allFsTeams } = useFirestoreTeams()
   const { activities: fsActivities } = useFirestoreActivities()
   const me = users.getCurrent()
   const modalRef = useRef(null)
@@ -78,7 +80,16 @@ export default function ProfileModal() {
   const isFsUser = !!fsUser
   const isMe = isFsUser ? user.id === myUid : user.id === me.id
   const stamp = getStamp(user.avatarStamp)
-  const team = isFsUser ? null : teams.findByMember(user.id)
+  // 表示対象のチーム名を解決:
+  // 1. user.teamName（登録画面で入力された自由記述）が最優先
+  // 2. FS チーム所属（memberIds に user.id を含むチーム名）
+  // 3. localStorage チーム所属
+  // 4. どれもなければ「無所属」
+  const fsTeam = isFsUser
+    ? (allFsTeams || []).find((t) => (t.memberIds || []).includes(user.id))
+    : null
+  const localTeam = !isFsUser ? teams.findByMember(user.id) : null
+  const teamLabel = user.teamName || fsTeam?.name || localTeam?.name || '無所属'
   const isPlayer = user.role === ROLES.PLAYER
 
   const userMissions = isPlayer && !isFsUser ? missions.listByUser(user.id) : []
@@ -143,10 +154,7 @@ export default function ProfileModal() {
             {user.userId && <div className="profile-handle">@{user.userId}</div>}
             <div className="profile-meta">
               <span className="role-tag">{ROLE_LABELS[user.role]}</span>
-              {user.teamName && <span className="friend-tag">{user.teamName}</span>}
-              {team && team.name !== user.teamName && (
-                <span className="friend-tag">{team.name}</span>
-              )}
+              <span className="friend-tag">{teamLabel}</span>
             </div>
           </div>
         </div>
