@@ -5,13 +5,14 @@ import { ROLES, DAILY_GOAL_OPTIONS, USER_ID_REGEX, USER_ID_RULE } from '../stora
 import { onGoalRaised } from '../lib/events.js'
 import { authReady } from '../lib/firebase.js'
 import { reserveUsername } from '../lib/firestoreUsername.js'
+import { syncUserProfile } from '../lib/firestoreSync.js'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 
 export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const current = users.getCurrent()
   const isEdit = !!current
-  const { myUid, friendships: fsFriendships } = useFirestoreFriends()
+  const { myUid, friendships: fsFriendships, refreshAllUsers } = useFirestoreFriends()
   const { myFsTeam } = useFirestoreTeams()
 
   const [email, setEmail] = useState(current?.email ?? '')
@@ -65,13 +66,21 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
 
       const prevGoal = current?.dailyGoal ?? null
       let savedId
+      let savedUser
       if (isEdit) {
-        users.update(current.id, data)
+        savedUser = users.update(current.id, data)
         savedId = current.id
       } else {
-        const u = users.create(data)
-        session.setCurrentUser(u.id)
-        savedId = u.id
+        savedUser = users.create(data)
+        session.setCurrentUser(savedUser.id)
+        savedId = savedUser.id
+      }
+      // Firestore 書き込みを明示的に await して、refreshAllUsers が新データを取れるようにする
+      // （storage.update 内の syncUserProfile は fire-and-forget なのでレースする）
+      try {
+        if (savedUser) await syncUserProfile(savedUser)
+      } catch (e) {
+        console.warn('[register] syncUserProfile failed', e)
       }
 
       if (role === ROLES.PLAYER) {
@@ -83,6 +92,9 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
         const fsRecipientUids = Array.from(new Set([...fsFriendUids, ...fsTeammateUids]))
         onGoalRaised(savedId, prevGoal, data.dailyGoal, fsRecipientUids, myFsTeam?.id ?? null)
       }
+      // 自分の avatarStamp / nickname 等の変更を allUsers キャッシュに反映させる
+      // （ランキング・チームメンバー・ProfileModal など FS データを参照する画面で必要）
+      try { await refreshAllUsers?.() } catch (e) { console.warn('[register] refreshAllUsers failed', e) }
       onDone?.()
     } finally {
       setSubmitting(false)
