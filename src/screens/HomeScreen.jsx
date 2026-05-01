@@ -163,7 +163,17 @@ export default function HomeScreen() {
     })
   }
 
-  const coachAdvice = users
+  // コーチアドバイスは Firestore 側のユーザー（allUsers）と localStorage の両方から取得して結合
+  const fsCoachAdvice = (allUsers || [])
+    .filter((u) => u.role === ROLES.COACH && u.advice)
+    .map((u) => ({
+      id: u.uid,
+      userId: u.uid,
+      nickname: u.nickname,
+      advice: u.advice,
+      stamp: getStamp(u.avatarStamp),
+    }))
+  const localCoachAdvice = users
     .list()
     .filter((u) => u.role === ROLES.COACH && u.advice)
     .map((u) => ({
@@ -173,6 +183,14 @@ export default function HomeScreen() {
       advice: u.advice,
       stamp: getStamp(u.avatarStamp),
     }))
+  // 同じ nickname + advice の重複を除く（自分が両方に登録されているケース）
+  const seen = new Set()
+  const coachAdvice = [...fsCoachAdvice, ...localCoachAdvice].filter((c) => {
+    const key = `${c.nickname}::${c.advice}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 
   const todayMission = isPlayer ? missions.get(user.id, today) : null
   const childClaimed = !!todayMission?.childClaimed
