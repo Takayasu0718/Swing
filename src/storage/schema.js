@@ -171,6 +171,7 @@ export const NOTIFICATION_TYPES = Object.freeze([
   { key: 'goal_raised', label: '目標回数アップ通知' },
   { key: 'mvp_selected', label: 'MVP選出通知' },
   { key: 'goal_reminder', label: '目標リマインダー（20時）' },
+  { key: 'trial_request', label: '体験会・助っ人参加のお願い' },
 ])
 
 export const DEFAULT_NOTIFICATION_SETTINGS = Object.freeze(

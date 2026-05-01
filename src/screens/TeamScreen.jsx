@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { users, teams, teamRequests, chats, activities, missions } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
@@ -34,6 +34,11 @@ import {
   declineFsTeamRequest,
 } from '../lib/firestoreTeamRequests.js'
 import { postFsChat, toggleFsChatLike } from '../lib/firestoreChats.js'
+import {
+  subscribeTrialRequest,
+  setTrialRequest,
+  deleteTrialRequest,
+} from '../lib/firestoreTrialRequests.js'
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -77,6 +82,15 @@ export default function TeamScreen() {
   const [editingMatchId, setEditingMatchId] = useState(null)
   const [chatInput, setChatInput] = useState('')
   const [creatingTeam, setCreatingTeam] = useState(false)
+  const [trialRequest, setTrialRequestState] = useState(null)
+  const [editingTrialRequest, setEditingTrialRequest] = useState(false)
+
+  // 体験会・助っ人参加のお願いを購読（FS チームのみ）
+  useEffect(() => {
+    if (!myFsTeam?.id) return
+    return subscribeTrialRequest(myFsTeam.id, setTrialRequestState)
+  }, [myFsTeam?.id])
+
   if (!me) return null
 
   // Firestore team が存在すればそれを優先、なければ localStorage（mock 用）にフォールバック
@@ -661,6 +675,31 @@ export default function TeamScreen() {
         }}
       />
 
+      {isFsTeam && (
+        <TeamTrialRequestCard
+          members={members}
+          request={trialRequest}
+          editing={editingTrialRequest}
+          onStartEdit={() => setEditingTrialRequest(true)}
+          onCancel={() => setEditingTrialRequest(false)}
+          onSave={async (fields) => {
+            const trialUids = members
+              .filter((m) => m.role === ROLES.TRIAL)
+              .map((m) => m.id)
+            await setTrialRequest(myTeam.id, fields, {
+              trialUids,
+              teamName: myTeam.name || '',
+            })
+            setEditingTrialRequest(false)
+          }}
+          onDelete={async () => {
+            if (!confirm('体験会・助っ人参加のお願いを削除しますか？')) return
+            await deleteTrialRequest(myTeam.id)
+            setEditingTrialRequest(false)
+          }}
+        />
+      )}
+
       <section className="info-card">
         <button className="danger-btn" onClick={handleLeaveTeam}>
           チームを脱退する
@@ -1180,5 +1219,99 @@ function CreateTeamCard({ creating, onStart, onCancel, onCreate }) {
         </button>
       </div>
     </section>
+  )
+}
+
+function TeamTrialRequestCard({
+  members,
+  request,
+  editing,
+  onStartEdit,
+  onCancel,
+  onSave,
+  onDelete,
+}) {
+  const trialCount = members.filter((m) => m.role === ROLES.TRIAL).length
+  return (
+    <section className="info-card">
+      <div className="card-title card-title-row">
+        <span>体験会・試合助っ人参加のお願い</span>
+        {!editing && (
+          <button type="button" className="small-btn card-edit-btn" onClick={onStartEdit}>
+            {request ? '編集' : '作成'}
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <TrialRequestForm request={request} onCancel={onCancel} onSave={onSave} />
+      ) : request ? (
+        <>
+          <div className="trial-request-row"><b>開催日:</b> {request.date || '未設定'}</div>
+          <div className="trial-request-row"><b>場所:</b> {request.location || '未設定'}</div>
+          {request.notes && (
+            <div className="trial-request-notes">{request.notes}</div>
+          )}
+          <div className="empty-txt" style={{ marginTop: '0.5rem' }}>
+            体験ロールのメンバー{trialCount}名に通知済み。参加状況は各メンバーの保護者画面で確認できます。
+          </div>
+          <button className="danger-btn" onClick={onDelete} style={{ marginTop: '0.6rem' }}>
+            お願いを削除
+          </button>
+        </>
+      ) : (
+        <div className="empty-txt">右上の「作成」から募集を開始できます。</div>
+      )}
+    </section>
+  )
+}
+
+function TrialRequestForm({ request, onCancel, onSave }) {
+  const [date, setDate] = useState(request?.date ?? '')
+  const [location, setLocation] = useState(request?.location ?? '')
+  const [notes, setNotes] = useState(request?.notes ?? '')
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    if (!date) return
+    setSaving(true)
+    try {
+      await onSave({ date, location: location.trim(), notes: notes.trim() })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="match-form">
+      <label className="field">
+        <span className="field-label">開催日 <span className="req">*</span></span>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">場所</span>
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="例: 〇〇グラウンド"
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">備考</span>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="持ち物・集合時間など"
+        />
+      </label>
+      <div className="btn-row">
+        <button className="outline-btn" onClick={onCancel} disabled={saving}>キャンセル</button>
+        <button className="submit" onClick={submit} disabled={saving || !date}>
+          {saving ? '保存中…' : '保存'}
+        </button>
+      </div>
+    </div>
   )
 }

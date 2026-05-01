@@ -108,6 +108,23 @@ service cloud.firestore {
                     && request.auth.uid == resource.data.userId;
     }
 
+    // 体験会・試合助っ人参加のお願い: 1チーム1件（teamId=docId）。
+    // 読み取り・書き込みともにチームメンバー全員可。
+    match /trialRequests/{teamId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+      allow create, update, delete: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+
+      // 参加状態: docId == 自分の uid のもののみ書ける。
+      match /participants/{uid} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+        allow create, update, delete: if request.auth != null
+                      && request.auth.uid == uid;
+      }
+    }
+
     match /teamRequests/{requestId} {
       allow read: if request.auth != null
                   && (request.auth.uid == resource.data.fromUid

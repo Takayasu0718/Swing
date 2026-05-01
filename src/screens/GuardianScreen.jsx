@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { users, missions, settings, __resetAll } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES, DISPLAY_SETTINGS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
@@ -6,14 +6,37 @@ import { computeStreak, countAchievementDays, computeLongestStreak } from '../li
 import { levelFromProgress } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
 import { useTheme } from '../hooks/useTheme.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
+import {
+  subscribeTrialRequest,
+  subscribeMyParticipation,
+  setMyParticipation,
+} from '../lib/firestoreTrialRequests.js'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
   const { mode: themeMode, setMode: setThemeMode } = useTheme()
+  const { myUid, myFsTeam } = useFirestoreTeams()
+  const [trialRequest, setTrialRequest] = useState(null)
+  const [participation, setParticipation] = useState(null)
   const user = users.getCurrent()
+
+  // FS チームの体験会・助っ人参加のお願いを購読
+  useEffect(() => {
+    if (!myFsTeam?.id) return
+    return subscribeTrialRequest(myFsTeam.id, setTrialRequest)
+  }, [myFsTeam?.id])
+
+  // 自分の参加状態を購読
+  useEffect(() => {
+    if (!myFsTeam?.id || !myUid) return
+    return subscribeMyParticipation(myFsTeam.id, myUid, setParticipation)
+  }, [myFsTeam?.id, myUid])
+
   if (!user) return null
 
   const isPlayer = user.role === ROLES.PLAYER
+  const isTrial = user.role === ROLES.TRIAL
   const userSettings = settings.get(user.id)
 
   const stats = isPlayer
@@ -101,6 +124,38 @@ export default function GuardianScreen({ onNavigate }) {
           プロフィールを編集
         </button>
       </section>
+
+      {isTrial && trialRequest && myFsTeam?.id && (
+        <section className="info-card">
+          <div className="card-title">体験会・助っ人参加のお願い</div>
+          <div className="trial-request-row"><b>開催日:</b> {trialRequest.date || '未設定'}</div>
+          <div className="trial-request-row"><b>場所:</b> {trialRequest.location || '未設定'}</div>
+          {trialRequest.notes && (
+            <div className="trial-request-notes">{trialRequest.notes}</div>
+          )}
+          <div className="empty-txt" style={{ marginTop: '0.5rem' }}>
+            {participation?.status === 'in'
+              ? '参加するとして回答済みです。'
+              : participation?.status === 'out'
+                ? '不参加として回答済みです。'
+                : '参加可否を選択してください'}
+          </div>
+          <div className="btn-row">
+            <button
+              className={`role-btn ${participation?.status === 'in' ? 'active' : ''}`}
+              onClick={() => setMyParticipation(myFsTeam.id, 'in')}
+            >
+              参加する
+            </button>
+            <button
+              className={`role-btn ${participation?.status === 'out' ? 'active' : ''}`}
+              onClick={() => setMyParticipation(myFsTeam.id, 'out')}
+            >
+              不参加
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="info-card">
         <div className="card-title">通知設定</div>

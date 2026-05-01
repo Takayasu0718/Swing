@@ -31,6 +31,7 @@ const TYPE_ICON = {
   goal_raised: '📈',
   mvp_selected: '🏆',
   goal_reminder: '⏰',
+  trial_request: '📋',
 }
 
 const ACTIONABLE_TYPES = new Set(['friend_request', 'team_join_request', 'friend_team_request'])
