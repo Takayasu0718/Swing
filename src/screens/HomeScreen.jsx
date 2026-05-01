@@ -467,7 +467,7 @@ export default function HomeScreen() {
         </section>
       )}
 
-      <NextMatchCard userId={user.id} />
+      <NextMatchCard userId={user.id} fsTeam={myFsTeam} />
 
       <section className="advice-card">
         <div className="card-title">監督・コーチからの一言アドバイス</div>
@@ -503,9 +503,10 @@ export default function HomeScreen() {
   )
 }
 
-function NextMatchCard({ userId }) {
-  const team = teams.findByMember(userId)
-  const nm = team?.nextMatch
+function NextMatchCard({ userId, fsTeam }) {
+  // Firestore チームの次試合を優先、なければ localStorage チームにフォールバック
+  const localTeam = teams.findByMember(userId)
+  const nm = fsTeam?.nextMatch || localTeam?.nextMatch
   return (
     <section className="info-card">
       <div className="card-title">次の試合予定</div>
