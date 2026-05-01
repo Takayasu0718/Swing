@@ -4,6 +4,7 @@ import { users, notifications, missions, useStoreVersion } from './storage/stora
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import { ensureAnonymousAuth } from './lib/firebase.js'
 import { syncUserProfile } from './lib/firestoreSync.js'
+import { subscribeMyConversations } from './lib/firestoreDms.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'
 import { maybeFireGoalReminder } from './lib/reminder.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
@@ -43,6 +44,21 @@ function AppShell() {
   const needsUserIdSetup = !!current && !current.userId
   const activeTab = !current || needsUserIdSetup ? 'register' : tab
   const { unread: fsUnread, myUid } = useFirestoreNotifications()
+  const [dmConversations, setDmConversations] = useState([])
+
+  // DM の未読数を保護者タブのバッジに出すため、会話メタを軽量購読
+  // （メッセージ本体ではなく conversation doc のみ。送信のたびに 1 回更新されるだけなので安価）
+  useEffect(() => {
+    if (!myUid) return
+    return subscribeMyConversations(myUid, setDmConversations)
+  }, [myUid])
+
+  const dmUnreadCount = dmConversations.filter((c) => {
+    if (!c.lastMessageAt) return false
+    if (c.lastMessageSenderUid === myUid) return false
+    const myLastReadAt = c.lastReadAt?.[myUid]
+    return !myLastReadAt || myLastReadAt < c.lastMessageAt
+  }).length
 
   useEffect(() => {
     if (current) {
@@ -135,7 +151,7 @@ function AppShell() {
         active={activeTab}
         onChange={handleTabChange}
         locked={!current || needsUserIdSetup ? 'register' : null}
-        badges={{ notif: unreadCount }}
+        badges={{ notif: unreadCount, guardian: dmUnreadCount }}
       />
       <ProfileModal />
       <DmOverlay />

@@ -166,6 +166,30 @@ export async function fetchMyConversations() {
   }
 }
 
+// 会話メタの軽量リアルタイム購読（バッジ表示用）。
+// 会話 doc の更新（新着メッセージ送信時の lastMessageAt 等）にだけ反応するので
+// メッセージ全件購読より遥かに安価。アプリ起動中に1個だけ張る前提で使う。
+export function subscribeMyConversations(myUid, callback) {
+  if (!db || !myUid) {
+    callback([])
+    return () => {}
+  }
+  const q = query(collection(db, 'dms'), where('participants', 'array-contains', myUid))
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => shapeConversation(d)).filter(Boolean)
+      list.sort((a, b) => {
+        if (!a.lastMessageAt) return 1
+        if (!b.lastMessageAt) return -1
+        return a.lastMessageAt < b.lastMessageAt ? 1 : -1
+      })
+      callback(list)
+    },
+    (err) => console.error('[dms] conversations listener failed', err),
+  )
+}
+
 export async function fetchConversation(convId) {
   if (!db || !convId) return null
   await authReady
