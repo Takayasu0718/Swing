@@ -13,6 +13,7 @@ import SearchBox from '../components/SearchBox.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
 import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 
@@ -20,6 +21,7 @@ export default function FriendsScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
   const { myUid, friendships: fsFriendships, usersByUid, allUsers } = useFirestoreFriends()
+  const { allFsTeams } = useFirestoreTeams()
   const { activities: allFsActivities } = useFirestoreActivities()
   const [query, setQuery] = useState('')
   if (!me) return null
@@ -61,6 +63,13 @@ export default function FriendsScreen() {
         if (!u.uid || u.uid === myUid) return false
         if (matchesJa(u.nickname || '', q)) return true
         if (u.userId && u.userId.toLowerCase().includes(qLower)) return true
+        // 所属チーム名（自由記述 or FS チームの正式名）でも検索ヒット
+        if (u.teamName && matchesJa(u.teamName, q)) return true
+        const fsTeam = (allFsTeams || []).find((t) => (t.memberIds || []).includes(u.uid))
+        if (fsTeam) {
+          if (matchesJa(fsTeam.name || '', q)) return true
+          if (fsTeam.handle && fsTeam.handle.toLowerCase().includes(qLower)) return true
+        }
         return false
       })
     : []
