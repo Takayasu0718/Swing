@@ -49,8 +49,10 @@ export function subscribeTrialRequest(teamId, callback) {
   )
 }
 
-// upsert（キャプテンのみ）。trialUids には体験ロールメンバーの uid を渡し、
+// upsert（チームメンバーなら誰でも可）。trialUids には体験ロールメンバーの uid を渡し、
 // 通知をその全員に送る（teamName は通知本文に使う）。
+// 通知送信前に teams/{teamId}.memberIds を再フェッチし、現在もチームに在籍している
+// 体験ユーザーのみに通知を絞り込む（クライアントキャッシュ古化への保険）。
 export async function setTrialRequest(teamId, fields, options = {}) {
   if (!db || !teamId) return false
   const myUid = await authReady
@@ -69,10 +71,14 @@ export async function setTrialRequest(teamId, fields, options = {}) {
     if (!existing.exists()) payload.createdAt = serverTimestamp()
     await setDoc(ref, payload, { merge: true })
 
+    // チーム在籍チェック: memberIds に含まれる uid のみ通知対象
+    const teamSnap = await getDoc(doc(db, 'teams', teamId))
+    const liveMemberIds = teamSnap.exists() ? (teamSnap.data().memberIds || []) : []
+    const recipients = trialUids.filter((uid) => uid && uid !== myUid && liveMemberIds.includes(uid))
+
     const teamLabel = teamName ? `「${teamName}」` : 'チーム'
     const verb = existing.exists() ? '更新' : '受付開始'
-    for (const uid of trialUids) {
-      if (!uid || uid === myUid) continue
+    for (const uid of recipients) {
       await createFsNotification({
         userId: uid,
         type: 'trial_request',
