@@ -100,6 +100,8 @@ export async function sendDmMessage(convId, partnerUid, content) {
   const trimmed = content.trim().slice(0, 1000)
   try {
     // 1) 会話メタ upsert（メッセージ作成時のルールで participants を読む必要があるので先）
+    // 注: setDoc(merge:true) はキーのドット記法を path として解釈しないため、
+    // lastReadAt はネストオブジェクトで渡す（deep merge は動く）。
     await setDoc(
       doc(db, 'dms', convId),
       {
@@ -107,7 +109,7 @@ export async function sendDmMessage(convId, partnerUid, content) {
         lastMessage: trimmed,
         lastMessageAt: serverTimestamp(),
         lastMessageSenderUid: myUid,
-        [`lastReadAt.${myUid}`]: serverTimestamp(),
+        lastReadAt: { [myUid]: serverTimestamp() },
       },
       { merge: true },
     )
@@ -134,7 +136,7 @@ export async function markConversationRead(convId) {
   try {
     await setDoc(
       doc(db, 'dms', convId),
-      { [`lastReadAt.${myUid}`]: serverTimestamp() },
+      { lastReadAt: { [myUid]: serverTimestamp() } },
       { merge: true },
     )
   } catch (e) {
