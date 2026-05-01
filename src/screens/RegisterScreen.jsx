@@ -176,7 +176,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
         <span className="field-label">
           役割 <span className="req">*</span>
         </span>
-        <div className="role-row">
+        <div className="role-row role-row-3">
           <button
             type="button"
             className={`role-btn ${role === ROLES.PLAYER ? 'active' : ''}`}
@@ -190,6 +190,13 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
             onClick={() => setRole(ROLES.COACH)}
           >
             監督・コーチ
+          </button>
+          <button
+            type="button"
+            className={`role-btn ${role === ROLES.TRIAL ? 'active' : ''}`}
+            onClick={() => setRole(ROLES.TRIAL)}
+          >
+            体験
           </button>
         </div>
       </div>

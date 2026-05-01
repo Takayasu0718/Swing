@@ -10,7 +10,7 @@ import {
   sendFriendTeamRequest,
 } from '../lib/events.js'
 import { matchesJa } from '../lib/kana.js'
-import { ACTIVITY_TYPES, TEAM_HANDLE_REGEX, TEAM_HANDLE_RULE } from '../storage/schema.js'
+import { ACTIVITY_TYPES, ROLES, TEAM_HANDLE_REGEX, TEAM_HANDLE_RULE } from '../storage/schema.js'
 import { PREFECTURES, MUNICIPALITIES_BY_PREF, OTHER_OPTION } from '../lib/jpRegions.js'
 import { authReady } from '../lib/firebase.js'
 import { reserveTeamHandle } from '../lib/firestoreTeamHandle.js'
@@ -219,11 +219,15 @@ export default function TeamScreen() {
   const lookupMember = (id) => {
     if (isFsTeam) {
       const u = allUsers.find((x) => x.uid === id)
-      return u ? { id: u.uid, nickname: u.nickname, avatarStamp: u.avatarStamp } : null
+      return u
+        ? { id: u.uid, nickname: u.nickname, avatarStamp: u.avatarStamp, role: u.role }
+        : null
     }
     return users.get(id)
   }
   const members = (myTeam.memberIds || []).map(lookupMember).filter(Boolean)
+  // 体験ロールはチームランキングの分母から除外
+  const rankingMembers = members.filter((m) => m.role !== ROLES.TRIAL)
   const friendTeamIds = myTeam.friendTeamIds || []
   const friendTeamActivities = friendTeamIds
     .flatMap((fid) => activities.listByTeam(fid))
@@ -489,7 +493,7 @@ export default function TeamScreen() {
       </section>
 
       {(() => {
-        const teamRanking = computeTeamRanking(members).slice(0, 10)
+        const teamRanking = computeTeamRanking(rankingMembers).slice(0, 10)
         console.log('[team-ranking]', teamRanking)
         const hasData = teamRanking.some((r) => r.totalSwing > 0)
         return (

@@ -281,6 +281,10 @@ body {
   gap: 0.5rem;
 }
 
+.role-row.role-row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .role-btn {
   padding: 0.9rem 0.5rem;
   font-size: 1rem;

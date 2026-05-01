@@ -99,12 +99,14 @@ export const ROLES = Object.freeze({
   PLAYER: 'player',
   COACH: 'coach',
   GUARDIAN: 'guardian',
+  TRIAL: 'trial',
 })
 
 export const ROLE_LABELS = Object.freeze({
   player: '選手',
   coach: '監督・コーチ',
   guardian: '保護者',
+  trial: '体験',
 })
 
 export const DAILY_GOAL_OPTIONS = Object.freeze([25, 50, 75, 100, 125, 150, 175, 200])

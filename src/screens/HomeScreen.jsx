@@ -117,6 +117,9 @@ export default function HomeScreen() {
   if (!user) return null
 
   const isPlayer = user.role === ROLES.PLAYER
+  const isTrial = user.role === ROLES.TRIAL
+  // ドラゴン・ランキングは選手＋体験ユーザーで共通表示
+  const showDragonAndRanking = isPlayer || isTrial
   const today = todayKey()
 
   const myMissions = missions.listByUser(user.id)
@@ -189,7 +192,7 @@ export default function HomeScreen() {
 
   return (
     <div className="screen home">
-      {isPlayer && (
+      {showDragonAndRanking && (
         <section className="dragon-card">
           <img
             src={stageImage(level)}
@@ -283,7 +286,7 @@ export default function HomeScreen() {
         </section>
       )}
 
-      {isPlayer && showAllUserRanking && (
+      {showDragonAndRanking && showAllUserRanking && (
         <section className="info-card">
           <div className="card-title">全ユーザーランキング（直近7日 / 上位10名）</div>
           {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
@@ -427,7 +430,7 @@ export default function HomeScreen() {
         )}
       </section>
 
-      {!isPlayer && (
+      {!isPlayer && !isTrial && (
         <section className="info-card">
           <div className="card-title">監督・コーチモード</div>
           <div className="empty-txt">
