@@ -734,6 +734,89 @@ body {
   padding: 1rem;
   border: 1.5px solid var(--blue-100);
   box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.mission-card.bursting {
+  animation: card-shake 0.5s ease-out;
+}
+
+@keyframes card-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-4px) rotate(-0.5deg); }
+  30% { transform: translateX(4px) rotate(0.5deg); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  80% { transform: translateX(-1px); }
+}
+
+.mission-card.bursting .claim-btn {
+  animation: claim-pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.7), 0 0 80px rgba(251, 191, 36, 0.4);
+}
+
+@keyframes claim-pop {
+  0% { transform: scale(1); }
+  20% { transform: scale(1.12) rotate(-2deg); filter: brightness(1.4); }
+  45% { transform: scale(0.96) rotate(1deg); }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.burst-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+}
+
+.burst-flash {
+  position: absolute;
+  inset: -10%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 200, 60, 0.55) 0%,
+    rgba(249, 115, 22, 0.35) 30%,
+    rgba(249, 115, 22, 0) 65%
+  );
+  animation: burst-flash 0.7s ease-out forwards;
+}
+
+@keyframes burst-flash {
+  0% { transform: scale(0.2); opacity: 0; }
+  20% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.burst-particle {
+  position: absolute;
+  left: 50%;
+  bottom: 28%;
+  --tx: 0px;
+  --ty: 0px;
+  --rot: 0deg;
+  transform: translate(-50%, 0) scale(0.3);
+  opacity: 0;
+  animation: burst-fly 1.3s cubic-bezier(0.18, 0.78, 0.34, 1) forwards;
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+  user-select: none;
+}
+
+@keyframes burst-fly {
+  0% {
+    transform: translate(-50%, 0) scale(0.2) rotate(0deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, calc(var(--ty) * 0.2)) scale(1.1) rotate(calc(var(--rot) * 0.2));
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1.4) rotate(var(--rot));
+    opacity: 0;
+  }
 }
 
 .mission-card.done {

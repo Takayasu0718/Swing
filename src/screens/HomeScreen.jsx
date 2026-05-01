@@ -80,6 +80,8 @@ export default function HomeScreen() {
   const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
   const { myFsTeam } = useFirestoreTeams()
   const [ranking, setRanking] = useState([])
+  // 達成ボタン押下時のエフェクト用パーティクル
+  const [burst, setBurst] = useState({ seed: 0, particles: [] })
 
   const fsFriendUids = (fsFriendships || [])
     .filter((f) => f.status === 'accepted')
@@ -113,6 +115,12 @@ export default function HomeScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myUid, allUidsKey])
+
+  useEffect(() => {
+    if (burst.seed === 0) return
+    const t = setTimeout(() => setBurst({ seed: 0, particles: [] }), 1400)
+    return () => clearTimeout(t)
+  }, [burst.seed])
 
   if (!user) return null
 
@@ -176,6 +184,21 @@ export default function HomeScreen() {
       swingCount: user.dailyGoal,
       uid: auth?.currentUser?.uid,
     })
+    // パーティクル生成（イベントハンドラ内なので Math.random は OK）
+    const emojis = ['🔥', '✨', '⭐', '💥', '🌟', '⚾']
+    const particles = Array.from({ length: 22 }).map((_, i) => {
+      const angle = (Math.PI * 2 * i) / 22 + Math.random() * 0.5
+      const dist = 90 + Math.random() * 80
+      return {
+        tx: Math.cos(angle) * dist,
+        ty: Math.sin(angle) * dist - 20,
+        emoji: emojis[i % emojis.length],
+        delay: Math.random() * 0.12,
+        size: 1.1 + Math.random() * 0.8,
+        rot: Math.random() * 720 - 360,
+      }
+    })
+    setBurst({ seed: Date.now(), particles })
     missions.claim(user.id, today, user.dailyGoal)
   }
   const approveMission = () => {
@@ -353,7 +376,7 @@ export default function HomeScreen() {
       )}
 
       {isPlayer && (
-        <section className={`mission-card ${completed ? 'done' : ''}`}>
+        <section className={`mission-card ${completed ? 'done' : ''} ${burst.seed > 0 ? 'bursting' : ''}`}>
           <div className="mission-head">
             <span className="mission-title">デイリーミッション</span>
             <span className={`mission-badge ${completed ? 'done' : ''}`}>
@@ -379,6 +402,26 @@ export default function HomeScreen() {
                 </button>
               )}
             </>
+          )}
+          {burst.seed > 0 && (
+            <div className="burst-overlay" aria-hidden>
+              <div className="burst-flash" />
+              {burst.particles.map((p, i) => (
+                <span
+                  key={`${burst.seed}-${i}`}
+                  className="burst-particle"
+                  style={{
+                    '--tx': `${p.tx}px`,
+                    '--ty': `${p.ty}px`,
+                    '--rot': `${p.rot}deg`,
+                    fontSize: `${p.size}rem`,
+                    animationDelay: `${p.delay}s`,
+                  }}
+                >
+                  {p.emoji}
+                </span>
+              ))}
+            </div>
           )}
         </section>
       )}
