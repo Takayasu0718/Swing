@@ -189,6 +189,23 @@ export default function HomeScreen() {
 
   return (
     <div className="screen home">
+      {isPlayer && (
+        <section className="dragon-card">
+          <img
+            src={stageImage(level)}
+            alt={`スイングドラゴン Lv${level}`}
+            className="dragon-img"
+            width={140}
+            height={140}
+          />
+          <div className="dragon-info">
+            <div className="dragon-name">スイングドラゴン</div>
+            <div className="dragon-level">Lv.{level}</div>
+            <div className="dragon-next">次のレベルまで あと <b>{daysToNext}</b> 日</div>
+          </div>
+        </section>
+      )}
+
       <header className="home-header">
         <span className="avatar-big" aria-hidden>{getStamp(user.avatarStamp).label}</span>
         <div>
@@ -329,23 +346,6 @@ export default function HomeScreen() {
               })}
             </div>
           )}
-        </section>
-      )}
-
-      {isPlayer && (
-        <section className="dragon-card">
-          <img
-            src={stageImage(level)}
-            alt={`スイングドラゴン Lv${level}`}
-            className="dragon-img"
-            width={140}
-            height={140}
-          />
-          <div className="dragon-info">
-            <div className="dragon-name">スイングドラゴン</div>
-            <div className="dragon-level">Lv.{level}</div>
-            <div className="dragon-next">次のレベルまで あと <b>{daysToNext}</b> 日</div>
-          </div>
         </section>
       )}
 
