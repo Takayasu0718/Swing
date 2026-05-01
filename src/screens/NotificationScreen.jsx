@@ -145,7 +145,8 @@ export default function NotificationScreen() {
               n.source === 'fs' ? n.likeUserIds?.length ?? 0 : activity?.likeUserIds?.length ?? 0
             const actionable =
               n.source === 'local' && ACTIONABLE_TYPES.has(n.type) && isRequestPending(n)
-            const showLike = n.source === 'fs' || !!activity
+            // いいね通知自体にはいいねボタンを出さない
+            const showLike = (n.source === 'fs' || !!activity) && n.type !== 'like'
             return (
               <li
                 key={`${n.source}-${n.id}`}
