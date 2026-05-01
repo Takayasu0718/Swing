@@ -14,7 +14,9 @@ import TeamScreen from './screens/TeamScreen.jsx'
 import GuardianScreen from './screens/GuardianScreen.jsx'
 import TabBar from './components/TabBar.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
+import DmOverlay from './components/DmOverlay.jsx'
 import { ProfileProvider } from './hooks/useProfile.jsx'
+import { DmProvider } from './hooks/useDm.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
 import { FirestoreTeamsProvider } from './hooks/useFirestoreTeams.jsx'
@@ -136,6 +138,7 @@ function AppShell() {
         badges={{ notif: unreadCount }}
       />
       <ProfileModal />
+      <DmOverlay />
     </div>
   )
 }
@@ -148,7 +151,9 @@ export default function App() {
           <FirestoreActivitiesProvider>
             <FirestoreNotificationsProvider>
               <ProfileProvider>
-                <AppShell />
+                <DmProvider>
+                  <AppShell />
+                </DmProvider>
               </ProfileProvider>
             </FirestoreNotificationsProvider>
           </FirestoreActivitiesProvider>

@@ -307,6 +307,152 @@ body {
   word-break: break-word;
 }
 
+/* ================ DM overlay ================ */
+.dm-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.dm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem calc(0.6rem + env(safe-area-inset-top, 0));
+  border-bottom: 1px solid var(--blue-100);
+  background: var(--surface);
+}
+
+.dm-back {
+  background: transparent;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--blue-700);
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+}
+
+.dm-back:hover {
+  background: var(--blue-50);
+}
+
+.dm-header-name {
+  font-weight: 700;
+  color: var(--blue-900);
+  font-size: 1rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg);
+}
+
+.dm-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem calc(0.6rem + env(safe-area-inset-bottom, 0));
+  border-top: 1px solid var(--blue-100);
+  background: var(--surface);
+}
+
+.dm-input {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 1.5px solid var(--blue-100);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--slate-900);
+  outline: none;
+  font-family: inherit;
+  resize: none;
+  max-height: 6em;
+}
+
+.dm-input:focus {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.dm-send-btn {
+  margin-top: 0;
+  padding: 0.7rem 1.2rem;
+  flex-shrink: 0;
+}
+
+/* DM 一覧の行（保護者画面） */
+.dm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px dashed var(--blue-100);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dm-row:last-child {
+  border-bottom: none;
+}
+
+.dm-row:hover {
+  background: var(--blue-50);
+}
+
+.dm-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dm-row-name {
+  font-weight: 700;
+  color: var(--blue-900);
+  font-size: 0.95rem;
+}
+
+.dm-row-preview {
+  font-size: 0.82rem;
+  color: var(--slate-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 0.15rem;
+}
+
+.dm-unread-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
 .role-btn {
   padding: 0.9rem 0.5rem;
   font-size: 1rem;

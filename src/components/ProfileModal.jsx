@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
+import { useDm } from '../hooks/useDm.jsx'
 import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
 import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
 import { users, teams, friendships, missions, activities } from '../storage/storage.js'
@@ -18,6 +19,7 @@ export default function ProfileModal() {
   const { myUid, allUsers, friendships: fsFriendships } = useFirestoreFriends()
   const { allFsTeams } = useFirestoreTeams()
   const { activities: fsActivities } = useFirestoreActivities()
+  const { openDm } = useDm()
   const me = users.getCurrent()
   const modalRef = useRef(null)
   const closeRef = useRef(null)
@@ -174,6 +176,19 @@ export default function ProfileModal() {
                 onClick={handleSendRequest}
               >
                 フレンド申請
+              </button>
+            )}
+            {isFsUser && (
+              <button
+                type="button"
+                className="small-btn filled"
+                style={{ marginLeft: '0.5rem' }}
+                onClick={() => {
+                  openDm(user.id)
+                  closeProfile()
+                }}
+              >
+                DM
               </button>
             )}
           </div>

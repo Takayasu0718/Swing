@@ -7,18 +7,24 @@ import { levelFromProgress } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
 import { useTheme } from '../hooks/useTheme.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
+import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
+import { useDm } from '../hooks/useDm.jsx'
 import {
   subscribeTrialRequest,
   subscribeMyParticipation,
   setMyParticipation,
 } from '../lib/firestoreTrialRequests.js'
+import { fetchMyConversations } from '../lib/firestoreDms.js'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
   const { mode: themeMode, setMode: setThemeMode } = useTheme()
   const { myUid, myFsTeam } = useFirestoreTeams()
+  const { allUsers } = useFirestoreFriends()
+  const { openDm } = useDm()
   const [trialRequest, setTrialRequest] = useState(null)
   const [participation, setParticipation] = useState(null)
+  const [conversations, setConversations] = useState([])
   const user = users.getCurrent()
 
   // FS チームの体験会・助っ人参加のお願いを購読
@@ -32,6 +38,18 @@ export default function GuardianScreen({ onNavigate }) {
     if (!myFsTeam?.id || !myUid) return
     return subscribeMyParticipation(myFsTeam.id, myUid, setParticipation)
   }, [myFsTeam?.id, myUid])
+
+  // DM 会話一覧を一発取得（リアルタイムなし）
+  useEffect(() => {
+    if (!myUid) return
+    let cancelled = false
+    fetchMyConversations().then((list) => {
+      if (!cancelled) setConversations(list)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myUid])
 
   if (!user) return null
 
@@ -156,6 +174,50 @@ export default function GuardianScreen({ onNavigate }) {
           </div>
         </section>
       )}
+
+      <section className="info-card">
+        <div className="card-title">メッセージ（{conversations.length}）</div>
+        {conversations.length === 0 ? (
+          <div className="empty-txt">
+            まだメッセージはありません。プロフィールの「DM」ボタンから会話を始められます。
+          </div>
+        ) : (
+          <div>
+            {conversations.map((c) => {
+              const partnerUid = (c.participants || []).find((p) => p !== myUid)
+              if (!partnerUid) return null
+              const partner = (allUsers || []).find((u) => u.uid === partnerUid)
+              const myLastReadAt = c.lastReadAt?.[myUid] || null
+              const hasUnread =
+                c.lastMessageAt
+                && c.lastMessageSenderUid !== myUid
+                && (!myLastReadAt || myLastReadAt < c.lastMessageAt)
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="dm-row"
+                  onClick={() => openDm(partnerUid)}
+                >
+                  <span className="activity-stamp" aria-hidden>
+                    {getStamp(partner?.avatarStamp).label}
+                  </span>
+                  <div className="dm-row-info">
+                    <div className="dm-row-name">
+                      {partner?.nickname ?? partnerUid.slice(0, 6)}
+                    </div>
+                    <div className="dm-row-preview">
+                      {c.lastMessageSenderUid === myUid ? 'あなた: ' : ''}
+                      {c.lastMessage || '（メッセージなし）'}
+                    </div>
+                  </div>
+                  {hasUnread && <span className="dm-unread-dot" aria-label="未読あり" />}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="info-card">
         <div className="card-title">通知設定</div>

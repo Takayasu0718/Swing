@@ -125,6 +125,29 @@ service cloud.firestore {
       }
     }
 
+    // 1対1 DM。dms/{convId} と messages サブコレクション。
+    // convId = sorted([uidA, uidB]).join('_')。当事者2人だけが read/write 可能。
+    match /dms/{convId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants.size() == 2;
+      allow update: if request.auth != null
+                    && request.auth.uid in resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/dms/$(convId)).data.participants;
+        allow create: if request.auth != null
+                      && request.auth.uid == request.resource.data.senderUid
+                      && request.auth.uid in get(/databases/$(database)/documents/dms/$(convId)).data.participants;
+        allow update, delete: if request.auth != null
+                              && request.auth.uid == resource.data.senderUid;
+      }
+    }
+
     match /teamRequests/{requestId} {
       allow read: if request.auth != null
                   && (request.auth.uid == resource.data.fromUid
