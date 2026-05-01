@@ -2,14 +2,14 @@
 // by changing `render` per stamp without touching call sites.
 
 export const STAMPS = [
-  { id: 'baseball', label: '⚾', name: 'ボール' },
-  { id: 'bat', label: '🏏', name: 'バット' },
-  { id: 'dragon', label: '🐉', name: 'ドラゴン' },
-  { id: 'star', label: '⭐', name: 'スター' },
-  { id: 'fire', label: '🔥', name: 'ファイヤー' },
-  { id: 'muscle', label: '💪', name: 'マッスル' },
-  { id: 'target', label: '🎯', name: 'ターゲット' },
-  { id: 'crown', label: '👑', name: 'クラウン' },
+  { id: 'smile', label: '☺️', name: 'スマイル' },
+  { id: 'wink', label: '😉', name: 'ウインク' },
+  { id: 'love', label: '😍', name: 'ラブ' },
+  { id: 'kiss', label: '😘', name: 'キス' },
+  { id: 'shy', label: '🤭', name: 'てへ' },
+  { id: 'tear', label: '🥹', name: 'うるうる' },
+  { id: 'think', label: '🤔', name: 'かんがえ' },
+  { id: 'side', label: '🙄', name: 'よそ見' },
 ]
 
 export function getStamp(id) {

@@ -24,29 +24,29 @@ function daysAgo(d) {
 
 // Demo teams that must always exist so team search has something to show.
 const DEMO_TEAMS = [
-  { name: 'イースタンボーイズ', description: '東エリアの強豪チーム', captain: { nickname: 'だいき', avatarStamp: 'fire', dailyGoal: 150 } },
-  { name: '羽沢フォースターズ', description: '四つ星の意志で勝つ！', captain: { nickname: 'そうご', avatarStamp: 'star', dailyGoal: 100 } },
-  { name: 'ブルーフェニックス', description: '青い炎のチーム', captain: { nickname: 'れん', avatarStamp: 'crown', dailyGoal: 125 } },
+  { name: 'イースタンボーイズ', description: '東エリアの強豪チーム', captain: { nickname: 'だいき', avatarStamp: 'wink', dailyGoal: 150 } },
+  { name: '羽沢フォースターズ', description: '四つ星の意志で勝つ！', captain: { nickname: 'そうご', avatarStamp: 'love', dailyGoal: 100 } },
+  { name: 'ブルーフェニックス', description: '青い炎のチーム', captain: { nickname: 'れん', avatarStamp: 'think', dailyGoal: 125 } },
 ]
 
 // Sakuradai Sunbird roster — all 16 are friends of the current user AND teammates.
 const SUNBIRD_ROSTER = [
-  { nickname: 'りくた', avatarStamp: 'fire', dailyGoal: 100 },
-  { nickname: 'けい', avatarStamp: 'star', dailyGoal: 75 },
-  { nickname: 'みもり', avatarStamp: 'muscle', dailyGoal: 125 },
-  { nickname: 'ほくと', avatarStamp: 'target', dailyGoal: 50 },
-  { nickname: 'えいた', avatarStamp: 'crown', dailyGoal: 150 },
-  { nickname: 'りんたろう', avatarStamp: 'dragon', dailyGoal: 100 },
-  { nickname: 'そうた', avatarStamp: 'baseball', dailyGoal: 75 },
-  { nickname: 'はじめ', avatarStamp: 'bat', dailyGoal: 100 },
-  { nickname: 'ちなつ', avatarStamp: 'fire', dailyGoal: 50 },
-  { nickname: 'ゆう', avatarStamp: 'star', dailyGoal: 75 },
-  { nickname: 'こう', avatarStamp: 'muscle', dailyGoal: 150 },
-  { nickname: 'そら', avatarStamp: 'target', dailyGoal: 100 },
-  { nickname: 'いつき', avatarStamp: 'crown', dailyGoal: 125 },
-  { nickname: 'かい', avatarStamp: 'dragon', dailyGoal: 75 },
-  { nickname: 'そう', avatarStamp: 'baseball', dailyGoal: 100 },
-  { nickname: 'けんた', avatarStamp: 'bat', dailyGoal: 100 },
+  { nickname: 'りくた', avatarStamp: 'smile', dailyGoal: 100 },
+  { nickname: 'けい', avatarStamp: 'wink', dailyGoal: 75 },
+  { nickname: 'みもり', avatarStamp: 'love', dailyGoal: 125 },
+  { nickname: 'ほくと', avatarStamp: 'kiss', dailyGoal: 50 },
+  { nickname: 'えいた', avatarStamp: 'shy', dailyGoal: 150 },
+  { nickname: 'りんたろう', avatarStamp: 'tear', dailyGoal: 100 },
+  { nickname: 'そうた', avatarStamp: 'think', dailyGoal: 75 },
+  { nickname: 'はじめ', avatarStamp: 'side', dailyGoal: 100 },
+  { nickname: 'ちなつ', avatarStamp: 'smile', dailyGoal: 50 },
+  { nickname: 'ゆう', avatarStamp: 'wink', dailyGoal: 75 },
+  { nickname: 'こう', avatarStamp: 'love', dailyGoal: 150 },
+  { nickname: 'そら', avatarStamp: 'kiss', dailyGoal: 100 },
+  { nickname: 'いつき', avatarStamp: 'shy', dailyGoal: 125 },
+  { nickname: 'かい', avatarStamp: 'tear', dailyGoal: 75 },
+  { nickname: 'そう', avatarStamp: 'think', dailyGoal: 100 },
+  { nickname: 'けんた', avatarStamp: 'side', dailyGoal: 100 },
 ]
 
 export function seedIfNeeded() {
