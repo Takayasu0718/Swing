@@ -17,7 +17,7 @@ import TabBar from './components/TabBar.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import DmOverlay from './components/DmOverlay.jsx'
 import { ProfileProvider } from './hooks/useProfile.jsx'
-import { DmProvider } from './hooks/useDm.jsx'
+import { DmProvider, useDm } from './hooks/useDm.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
 import { FirestoreTeamsProvider } from './hooks/useFirestoreTeams.jsx'
@@ -44,6 +44,7 @@ function AppShell() {
   const needsUserIdSetup = !!current && !current.userId
   const activeTab = !current || needsUserIdSetup ? 'register' : tab
   const { unread: fsUnread, myUid } = useFirestoreNotifications()
+  const { partnerUid: openDmPartner } = useDm()
   const [dmConversations, setDmConversations] = useState([])
 
   // DM の未読数を保護者タブのバッジに出すため、会話メタを軽量購読
@@ -56,6 +57,9 @@ function AppShell() {
   const dmUnreadCount = dmConversations.filter((c) => {
     if (!c.lastMessageAt) return false
     if (c.lastMessageSenderUid === myUid) return false
+    // 現在 DM を開いている相手の会話は楽観的に既読とみなす（サーバー応答待たない）
+    const otherUid = (c.participants || []).find((p) => p !== myUid)
+    if (openDmPartner && otherUid === openDmPartner) return false
     const myLastReadAt = c.lastReadAt?.[myUid]
     return !myLastReadAt || myLastReadAt < c.lastMessageAt
   }).length
