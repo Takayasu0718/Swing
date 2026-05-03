@@ -86,6 +86,7 @@ export default function TeamScreen() {
   const [trialRequest, setTrialRequestState] = useState(null)
   const [editingTrialRequest, setEditingTrialRequest] = useState(false)
   const [fsTeamRanking, setFsTeamRanking] = useState([])
+  const [viewingTeamId, setViewingTeamId] = useState(null)
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
@@ -253,6 +254,36 @@ export default function TeamScreen() {
     )
   }
 
+  // フレンドチームを閲覧中ならそちらの読み取り専用ビューを返す
+  if (viewingTeamId) {
+    const viewingTeam =
+      (allFsTeams || []).find((t) => t.id === viewingTeamId) || teams.get(viewingTeamId)
+    if (!viewingTeam) {
+      return (
+        <div className="screen">
+          <button className="outline-btn" onClick={() => setViewingTeamId(null)}>
+            ← 自分のチームに戻る
+          </button>
+          <EmptyState
+            icon="🔎"
+            title="チームが見つかりません"
+            description="削除された可能性があります。"
+          />
+        </div>
+      )
+    }
+    return (
+      <FriendTeamView
+        team={viewingTeam}
+        allUsers={allUsers || []}
+        allFsTeams={allFsTeams || []}
+        onBack={() => setViewingTeamId(null)}
+        onOpenProfile={openProfile}
+        onOpenTeam={(id) => setViewingTeamId(id)}
+      />
+    )
+  }
+
   const isCaptain = myTeam.captainId === myMemberId
   // MVPでは全員編集可。将来的に権限管理を戻す場合は isCaptain に差し替える。
   const canEdit = true
@@ -273,7 +304,10 @@ export default function TeamScreen() {
   const friendTeamActivities = friendTeamIds
     .flatMap((fid) => activities.listByTeam(fid))
     .map((a) => ({ ...a, source: 'local' }))
-  const friendTeams = friendTeamIds.map((fid) => teams.get(fid)).filter(Boolean)
+  // フレンドチームは FS / local 両方から解決
+  const friendTeams = friendTeamIds
+    .map((fid) => (allFsTeams || []).find((t) => t.id === fid) || teams.get(fid))
+    .filter(Boolean)
   // Exclude match_result from teammates timeline — shown separately in 試合結果 card.
   const localTeamActivities = activities
     .listByTeam(myTeam.id)
@@ -709,6 +743,30 @@ export default function TeamScreen() {
           setEditingMatchId(null)
         }}
       />
+
+      <section className="info-card">
+        <div className="card-title">フレンドチーム（{friendTeams.length}）</div>
+        {friendTeams.length === 0 ? (
+          <div className="empty-txt">
+            まだフレンドチームがありません。チーム検索→申請→承認で追加できます。
+          </div>
+        ) : (
+          <ul className="friend-chips">
+            {friendTeams.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="friend-chip"
+                  onClick={() => setViewingTeamId(t.id)}
+                >
+                  <span className="activity-name">{t.name}</span>
+                  {t.handle && <span className="user-handle">@{t.handle}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {isFsTeam && (
         <TeamTrialRequestCard
@@ -1347,6 +1405,188 @@ function TrialRequestForm({ request, onCancel, onSave }) {
           {saving ? '保存中…' : '保存'}
         </button>
       </div>
+    </div>
+  )
+}
+
+// フレンドチームの読み取り専用ビュー（チーム検索→申請→承認 後に表示される）
+function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onOpenTeam }) {
+  // FS チームならメンバーは uid で allUsers から解決、ローカルチームは users.get
+  const isFsTeam = !!(allFsTeams || []).find((t) => t.id === team.id)
+  const members = (team.memberIds || [])
+    .map((id) => {
+      if (isFsTeam) {
+        const u = allUsers.find((x) => x.uid === id)
+        return u
+          ? { id: u.uid, nickname: u.nickname, avatarStamp: u.avatarStamp, role: u.role }
+          : null
+      }
+      return users.get(id)
+    })
+    .filter(Boolean)
+
+  const friendTeamIds = team.friendTeamIds || []
+  const friendTeams = friendTeamIds
+    .map((fid) => (allFsTeams || []).find((t) => t.id === fid) || teams.get(fid))
+    .filter(Boolean)
+
+  const matches = [...(team.matches || [])].sort((a, b) => (a.date < b.date ? 1 : -1))
+  const locationLabel = [team.prefecture, team.municipality].filter(Boolean).join(' ')
+
+  // ランキング: FS チームは loadFriendRanking、ローカルは computeTeamRanking
+  const [ranking, setRanking] = useState([])
+  const memberKey = (team.memberIds || []).join(',')
+  useEffect(() => {
+    const rankingMembers = members.filter((m) => m.role !== ROLES.TRIAL)
+    if (isFsTeam) {
+      const memberUids = rankingMembers.map((m) => m.id)
+      const profiles = {}
+      for (const m of rankingMembers) {
+        profiles[m.id] = { nickname: m.nickname, avatarStamp: m.avatarStamp }
+      }
+      let cancelled = false
+      loadFriendRanking(memberUids, profiles).then((list) => {
+        if (!cancelled) {
+          setRanking(list.map((r) => ({
+            id: r.uid,
+            nickname: r.nickname,
+            avatarStamp: r.avatarStamp,
+            totalSwing: r.totalSwing,
+          })))
+        }
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+    // ローカルチームは同期計算だが、setState 直呼びは lint で禁止のため microtask 経由
+    let cancelledLocal = false
+    Promise.resolve().then(() => {
+      if (!cancelledLocal) setRanking(computeTeamRanking(rankingMembers))
+    })
+    return () => {
+      cancelledLocal = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team.id, isFsTeam, memberKey, allUsers.length])
+  const top10 = ranking.slice(0, 10)
+  const hasRankingData = top10.some((r) => r.totalSwing > 0)
+
+  return (
+    <div className="screen">
+      <button className="outline-btn" onClick={onBack}>← 自分のチームに戻る</button>
+
+      <section className="info-card">
+        <div className="card-title-row">
+          <span>{team.name}</span>
+          {team.handle && <span className="user-handle">@{team.handle}</span>}
+        </div>
+        {team.description && <div className="team-desc">{team.description}</div>}
+        {locationLabel && <div className="team-location">{locationLabel}</div>}
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">メンバー（{members.length}）</div>
+        <ul className="friend-chips">
+          {members.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                className="friend-chip"
+                onClick={() => onOpenProfile?.(m.id)}
+              >
+                <span className="activity-stamp" aria-hidden>{getStamp(m.avatarStamp).label}</span>
+                <span className="activity-name">{m.nickname}</span>
+                {m.id === team.captainId && <span className="captain-tag">C</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">チームランキング（直近7日 / 上位10名）</div>
+        {!hasRankingData ? (
+          <EmptyState
+            icon="🏆"
+            title="まだランキングデータがありません"
+            description="メンバーが素振りを達成するとここに反映されます"
+          />
+        ) : (
+          <ol className="ranking-list">
+            {top10.map((r, i) => (
+              <li
+                key={r.id}
+                className="ranking-row clickable"
+                onClick={() => r.id && onOpenProfile?.(r.id)}
+              >
+                <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
+                <span className="activity-stamp small" aria-hidden>
+                  {getStamp(r.avatarStamp).label}
+                </span>
+                <span className="ranking-name">
+                  {r.nickname}
+                  {r.id === team.captainId && <span className="captain-tag">C</span>}
+                </span>
+                <span className="ranking-count">
+                  {r.totalSwing.toLocaleString()}
+                  <span className="stat-unit">回</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">試合結果</div>
+        {matches.length === 0 ? (
+          <div className="empty-txt">まだ試合結果がありません</div>
+        ) : (
+          <ul className="match-list">
+            {matches.map((m) => {
+              const mvp = members.find((x) => x.id === m.mvpPlayerId) || null
+              const resultLabel = m.result === 'win' ? '勝利' : m.result === 'lose' ? '敗北' : '引分'
+              return (
+                <li key={m.id} className={`match-row ${m.result}`}>
+                  <div className="match-line">vs {m.opponent} <b>{m.score}</b> {resultLabel}</div>
+                  <div className="match-date">{m.date}</div>
+                  {mvp && (
+                    <div className="mvp-chip">
+                      <span className="mvp-label">MVP</span>
+                      <span className="activity-stamp small" aria-hidden>{getStamp(mvp.avatarStamp).label}</span>
+                      <span className="activity-name small">{mvp.nickname}</span>
+                      {m.mvpReason && <span className="mvp-reason">「{m.mvpReason}」</span>}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">フレンドチーム（{friendTeams.length}）</div>
+        {friendTeams.length === 0 ? (
+          <div className="empty-txt">フレンドチームはありません</div>
+        ) : (
+          <ul className="friend-chips">
+            {friendTeams.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="friend-chip"
+                  onClick={() => onOpenTeam?.(t.id)}
+                >
+                  <span className="activity-name">{t.name}</span>
+                  {t.handle && <span className="user-handle">@{t.handle}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
