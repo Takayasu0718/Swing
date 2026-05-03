@@ -14,6 +14,14 @@ import {
   markAllReadFsNotifications,
   toggleLikeFsNotification,
 } from '../lib/firestoreNotifications.js'
+import {
+  acceptFsTeamRequest,
+  declineFsTeamRequest,
+} from '../lib/firestoreTeamRequests.js'
+import {
+  acceptFriendRequestFs,
+  declineFriendRequestFs,
+} from '../lib/firestoreFriends.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreNotifications } from '../hooks/useFirestoreNotifications.jsx'
@@ -97,16 +105,30 @@ export default function NotificationScreen() {
   const toggleFsLike = (notifId) => toggleLikeFsNotification(notifId, myUid)
 
   const handleAccept = (n) => {
-    if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
-    else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
-    else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
+    if (n.source === 'fs') {
+      if (n.type === 'friend_request' && n.requestId) acceptFriendRequestFs(n.requestId)
+      else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
+        if (n.requestId) acceptFsTeamRequest(n.requestId)
+      }
+    } else {
+      if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
+      else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
+      else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
+    }
     markRead(n)
   }
 
   const handleDecline = (n) => {
-    if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
-    else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
-    else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
+    if (n.source === 'fs') {
+      if (n.type === 'friend_request' && n.requestId) declineFriendRequestFs(n.requestId)
+      else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
+        if (n.requestId) declineFsTeamRequest(n.requestId)
+      }
+    } else {
+      if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
+      else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
+      else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
+    }
     markRead(n)
   }
 
@@ -144,8 +166,12 @@ export default function NotificationScreen() {
                 : activity?.likeUserIds?.includes(me.id) ?? false
             const likeCount =
               n.source === 'fs' ? n.likeUserIds?.length ?? 0 : activity?.likeUserIds?.length ?? 0
+            // FS 通知は requestId があれば actionable とする（pending 状態は accept 側で確認）
             const actionable =
-              n.source === 'local' && ACTIONABLE_TYPES.has(n.type) && isRequestPending(n)
+              ACTIONABLE_TYPES.has(n.type) &&
+              (n.source === 'fs'
+                ? !!n.requestId
+                : isRequestPending(n))
             // いいね通知自体にはいいねボタンを出さない
             const showLike = (n.source === 'fs' || !!activity) && n.type !== 'like'
             return (
