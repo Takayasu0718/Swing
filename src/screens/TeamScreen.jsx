@@ -39,6 +39,7 @@ import {
   setTrialRequest,
   deleteTrialRequest,
 } from '../lib/firestoreTrialRequests.js'
+import { loadFriendRanking } from '../lib/firestoreRanking.js'
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -84,12 +85,38 @@ export default function TeamScreen() {
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [trialRequest, setTrialRequestState] = useState(null)
   const [editingTrialRequest, setEditingTrialRequest] = useState(false)
+  const [fsTeamRanking, setFsTeamRanking] = useState([])
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
     if (!myFsTeam?.id) return
     return subscribeTrialRequest(myFsTeam.id, setTrialRequestState)
   }, [myFsTeam?.id])
+
+  // FS チームのランキング: users/{uid}/activities から直近7日の swing 数を集計
+  const fsRankingMemberKey = (myFsTeam?.memberIds || []).join(',')
+  useEffect(() => {
+    if (!myFsTeam?.id) return
+    const memberUids = (myFsTeam.memberIds || []).filter((uid) => {
+      const u = (allUsers || []).find((x) => x.uid === uid)
+      // 体験ロールは分母から除外。allUsers にまだ載っていない場合は仮に含める。
+      return !u || u.role !== ROLES.TRIAL
+    })
+    const profiles = {}
+    for (const uid of memberUids) {
+      const u = (allUsers || []).find((x) => x.uid === uid)
+      if (u) profiles[uid] = { nickname: u.nickname, avatarStamp: u.avatarStamp }
+    }
+    let cancelled = false
+    loadFriendRanking(memberUids, profiles).then((list) => {
+      if (!cancelled) setFsTeamRanking(list)
+    })
+    return () => {
+      cancelled = true
+    }
+    // allUsers.length をキーに使い、ユーザー一覧読み込み完了で再集計
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myFsTeam?.id, fsRankingMemberKey, allUsers.length])
 
   if (!me) return null
 
@@ -507,7 +534,15 @@ export default function TeamScreen() {
       </section>
 
       {(() => {
-        const teamRanking = computeTeamRanking(rankingMembers).slice(0, 10)
+        // FS チームは Firestore activities ベース、ローカルチームは localStorage missions ベース
+        const teamRanking = isFsTeam
+          ? fsTeamRanking.map((r) => ({
+              id: r.uid,
+              nickname: r.nickname,
+              avatarStamp: r.avatarStamp,
+              totalSwing: r.totalSwing,
+            })).slice(0, 10)
+          : computeTeamRanking(rankingMembers).slice(0, 10)
         console.log('[team-ranking]', teamRanking)
         const hasData = teamRanking.some((r) => r.totalSwing > 0)
         return (
@@ -524,7 +559,7 @@ export default function TeamScreen() {
                 {teamRanking.map((r, i) => (
                   <li
                     key={r.id}
-                    className={`ranking-row ${r.id === me.id ? 'me' : ''} clickable`}
+                    className={`ranking-row ${r.id === myMemberId ? 'me' : ''} clickable`}
                     onClick={() => r.id && openProfile(r.id)}
                   >
                     <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
@@ -533,7 +568,7 @@ export default function TeamScreen() {
                     </span>
                     <span className="ranking-name">
                       {r.nickname}
-                      {r.id === me.id && <span className="real-tag">あなた</span>}
+                      {r.id === myMemberId && <span className="real-tag">あなた</span>}
                       {r.id === myTeam.captainId && <span className="captain-tag">C</span>}
                     </span>
                     <span className="ranking-count">
