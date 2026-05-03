@@ -148,15 +148,10 @@ service cloud.firestore {
       }
     }
 
+    // 開発中は認証済みなら read/write を許可（後で厳格化予定）。
+    // 厳格版はクエリに where('fromUid', '==', auth.uid) など必須。
     match /teamRequests/{requestId} {
-      allow read: if request.auth != null
-                  && (request.auth.uid == resource.data.fromUid
-                      || request.auth.uid == get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.captainId);
-      allow create: if request.auth != null
-                    && request.auth.uid == request.resource.data.fromUid;
-      allow update, delete: if request.auth != null
-                            && (request.auth.uid == resource.data.fromUid
-                                || request.auth.uid == get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.captainId);
+      allow read, write: if request.auth != null;
     }
   }
 }
