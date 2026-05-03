@@ -15,6 +15,7 @@ import {
   setMyParticipation,
 } from '../lib/firestoreTrialRequests.js'
 import { fetchMyConversations } from '../lib/firestoreDms.js'
+import { removeFsTeamMember } from '../lib/firestoreTeams.js'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
@@ -79,8 +80,20 @@ export default function GuardianScreen({ onNavigate }) {
     settings.setDisplay(user.id, key, !userSettings.display[key])
   }
 
-  const resetAll = () => {
+  const resetAll = async () => {
     if (!confirm('本当にすべてのデータをリセットしますか？\nプロフィール・素振り記録・ミッション履歴がすべて削除されます。')) return
+    // FS チームに所属していれば脱退してから localStorage をリセット
+    if (myFsTeam?.id && myUid) {
+      if (myFsTeam.captainId === myUid) {
+        alert('キャプテンはリセット前に他のメンバーへキャプテンを譲ってください（チーム画面）。')
+        return
+      }
+      try {
+        await removeFsTeamMember(myFsTeam.id, myUid)
+      } catch (e) {
+        console.warn('[reset] removeFsTeamMember failed', e)
+      }
+    }
     __resetAll()
   }
 
