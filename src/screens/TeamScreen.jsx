@@ -564,6 +564,10 @@ export default function TeamScreen() {
             {g.items.map((req) => {
               const fromUser = allUsers.find((u) => u.uid === req.fromUid)
               const label = req.kind === 'join' ? '加入申請' : 'フレンドチーム申請'
+              // フレンドチーム申請の場合は申請元チーム名を取得
+              const fromTeam = req.kind === 'friend_team' && req.fromTeamId
+                ? (allFsTeams || []).find((t) => t.id === req.fromTeamId)
+                : null
               return (
                 <li key={req.id} className="search-row">
                   <button
@@ -577,6 +581,11 @@ export default function TeamScreen() {
                     <div className="search-info">
                       <div className="activity-name">
                         {fromUser?.nickname ?? req.fromUid.slice(0, 6)}
+                        {fromTeam && (
+                          <span className="friend-tag" style={{ marginLeft: '0.4rem' }}>
+                            {fromTeam.name}
+                          </span>
+                        )}
                       </div>
                       <div className="search-sub">{label}</div>
                     </div>
