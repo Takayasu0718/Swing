@@ -550,11 +550,18 @@ export default function TeamScreen() {
         }}
       />
 
-      {isFsTeam && isCaptain && incomingRequests.length > 0 && (
-        <section className="info-card">
-          <div className="card-title">チーム宛の申請（{incomingRequests.length}）</div>
+      {isFsTeam && isCaptain && incomingRequests.length > 0 && (() => {
+        const joinReqs = incomingRequests.filter((r) => r.kind === 'join')
+        const friendTeamReqs = incomingRequests.filter((r) => r.kind === 'friend_team')
+        const groups = [
+          { kind: 'friend_team', title: 'フレンドチーム申請', items: friendTeamReqs },
+          { kind: 'join', title: '加入申請', items: joinReqs },
+        ].filter((g) => g.items.length > 0)
+        return groups.map((g) => (
+        <section key={g.kind} className="info-card">
+          <div className="card-title">{g.title}（{g.items.length}）</div>
           <ul className="search-list">
-            {incomingRequests.map((req) => {
+            {g.items.map((req) => {
               const fromUser = allUsers.find((u) => u.uid === req.fromUid)
               const label = req.kind === 'join' ? '加入申請' : 'フレンドチーム申請'
               return (
@@ -595,7 +602,8 @@ export default function TeamScreen() {
             })}
           </ul>
         </section>
-      )}
+        ))
+      })()}
 
       <section className="info-card">
         <div className="card-title">メンバー（{members.length}）</div>
