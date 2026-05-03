@@ -87,6 +87,9 @@ export default function TeamScreen() {
   const [editingTrialRequest, setEditingTrialRequest] = useState(false)
   const [fsTeamRanking, setFsTeamRanking] = useState([])
   const [viewingTeamId, setViewingTeamId] = useState(null)
+  // 楽観的 UI 用: 送信直後にラウンドトリップを待たず「申請中」を表示
+  const [pendingFriendTeamReqs, setPendingFriendTeamReqs] = useState(() => new Set())
+  const [pendingJoinReqs, setPendingJoinReqs] = useState(() => new Set())
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
@@ -119,6 +122,52 @@ export default function TeamScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myFsTeam?.id, fsRankingMemberKey, allUsers.length])
 
+  // 楽観的 UI: 送信直後に pending Set へ追加し「申請中」表示。失敗時は revert。
+  const handleSendFsFriendTeamRequest = (fromTeamId, targetTeamId) => {
+    if (!fromTeamId) return
+    setPendingFriendTeamReqs((prev) => new Set(prev).add(targetTeamId))
+    sendFsFriendTeamRequest(fromTeamId, targetTeamId)
+      .then((id) => {
+        if (!id) {
+          setPendingFriendTeamReqs((prev) => {
+            const next = new Set(prev)
+            next.delete(targetTeamId)
+            return next
+          })
+        }
+      })
+      .catch((e) => {
+        console.error('[friend-team-request] failed', e)
+        setPendingFriendTeamReqs((prev) => {
+          const next = new Set(prev)
+          next.delete(targetTeamId)
+          return next
+        })
+      })
+  }
+
+  const handleSendFsJoinRequest = (targetTeamId) => {
+    setPendingJoinReqs((prev) => new Set(prev).add(targetTeamId))
+    sendFsJoinRequest(targetTeamId)
+      .then((id) => {
+        if (!id) {
+          setPendingJoinReqs((prev) => {
+            const next = new Set(prev)
+            next.delete(targetTeamId)
+            return next
+          })
+        }
+      })
+      .catch((e) => {
+        console.error('[join-request] failed', e)
+        setPendingJoinReqs((prev) => {
+          const next = new Set(prev)
+          next.delete(targetTeamId)
+          return next
+        })
+      })
+  }
+
   if (!me) return null
 
   // Firestore team が存在すればそれを優先、なければ localStorage（mock 用）にフォールバック
@@ -146,7 +195,7 @@ export default function TeamScreen() {
           {fsSearchResults.map((t) => {
             const outgoing = outgoingRequests.find(
               (r) => r.kind === 'join' && r.teamId === t.id,
-            )
+            ) || pendingJoinReqs.has(t.id)
             return (
               <li key={`fs-${t.id}`} className="search-row">
                 <div className="search-info">
@@ -163,7 +212,7 @@ export default function TeamScreen() {
                   <button
                     type="button"
                     className="small-btn filled"
-                    onClick={() => sendFsJoinRequest(t.id)}
+                    onClick={() => handleSendFsJoinRequest(t.id)}
                   >
                     加入申請
                   </button>
@@ -381,12 +430,12 @@ export default function TeamScreen() {
           const isFriendTeam = friendTeamIds.includes(t.id)
           const outgoingJoin = outgoingRequests.find(
             (r) => r.kind === 'join' && r.teamId === t.id,
-          )
-          const outgoingFriend = isCaptain && isFsTeam
+          ) || pendingJoinReqs.has(t.id)
+          const outgoingFriend = (isCaptain && isFsTeam
             ? outgoingRequests.find(
                 (r) => r.kind === 'friend_team' && r.teamId === t.id && r.fromTeamId === myTeam.id,
               )
-            : null
+            : null) || pendingFriendTeamReqs.has(t.id)
           return (
             <li key={`fs-${t.id}`} className="search-row">
               <div className="search-info">
@@ -409,7 +458,7 @@ export default function TeamScreen() {
                 <button
                   type="button"
                   className="small-btn filled"
-                  onClick={() => sendFsFriendTeamRequest(myTeam.id, t.id)}
+                  onClick={() => handleSendFsFriendTeamRequest(myTeam.id, t.id)}
                 >
                   フレンドチーム申請
                 </button>
@@ -417,7 +466,7 @@ export default function TeamScreen() {
                 <button
                   type="button"
                   className="small-btn filled"
-                  onClick={() => sendFsJoinRequest(t.id)}
+                  onClick={() => handleSendFsJoinRequest(t.id)}
                 >
                   加入申請
                 </button>
