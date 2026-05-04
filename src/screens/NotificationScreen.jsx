@@ -43,6 +43,17 @@ const TYPE_ICON = {
 }
 
 const ACTIONABLE_TYPES = new Set(['friend_request', 'team_join_request', 'friend_team_request'])
+// いいねボタンを出さない通知タイプ（自分宛 like、自分宛アクション要求、リマインダー等）
+const NO_LIKE_TYPES = new Set([
+  'like',
+  'friend_request',
+  'friend_accepted',
+  'team_invite',
+  'team_join_request',
+  'friend_team_request',
+  'goal_reminder',
+  'trial_request',
+])
 
 function resolveFriendshipId(n) {
   if (n.requestId) return n.requestId
@@ -172,8 +183,8 @@ export default function NotificationScreen() {
               (n.source === 'fs'
                 ? !!n.requestId
                 : isRequestPending(n))
-            // いいね通知自体にはいいねボタンを出さない
-            const showLike = (n.source === 'fs' || !!activity) && n.type !== 'like'
+            // いいね通知・申請系・リマインダー等にはいいねボタンを出さない
+            const showLike = (n.source === 'fs' || !!activity) && !NO_LIKE_TYPES.has(n.type)
             return (
               <li
                 key={`${n.source}-${n.id}`}
