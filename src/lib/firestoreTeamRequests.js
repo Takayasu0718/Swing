@@ -118,56 +118,48 @@ export async function sendFsFriendTeamRequest(fromTeamId, toTeamId) {
 }
 
 export async function acceptFsTeamRequest(requestId) {
-  if (!db || !requestId) return
+  if (!db || !requestId) throw new Error('db or requestId missing')
   await authReady
-  try {
-    const reqRef = doc(db, 'teamRequests', requestId)
-    const reqSnap = await getDoc(reqRef)
-    if (!reqSnap.exists()) return
-    const r = reqSnap.data()
-    if (r.kind === 'join') {
-      await updateDoc(doc(db, 'teams', r.teamId), {
-        memberIds: arrayUnion(r.fromUid),
-        updatedAt: serverTimestamp(),
-      })
-      const team = await fetchTeam(r.teamId)
-      await createFsNotification({
-        userId: r.fromUid,
-        type: 'team_invite',
-        content: `「${team?.name || 'チーム'}」への加入が承認されました`,
-      })
-    } else if (r.kind === 'friend_team' && r.fromTeamId) {
-      await updateDoc(doc(db, 'teams', r.fromTeamId), {
-        friendTeamIds: arrayUnion(r.teamId),
-        updatedAt: serverTimestamp(),
-      })
-      await updateDoc(doc(db, 'teams', r.teamId), {
-        friendTeamIds: arrayUnion(r.fromTeamId),
-        updatedAt: serverTimestamp(),
-      })
-      const toTeam = await fetchTeam(r.teamId)
-      await createFsNotification({
-        userId: r.fromUid,
-        type: 'friend_team_request',
-        content: `「${toTeam?.name || 'チーム'}」がフレンドチーム申請を承認しました`,
-      })
-    }
-    await updateDoc(reqRef, { status: 'accepted', processedAt: serverTimestamp() })
-    console.log('[teamRequests] accepted', requestId)
-  } catch (e) {
-    console.error('[teamRequests] accept failed', e)
+  const reqRef = doc(db, 'teamRequests', requestId)
+  const reqSnap = await getDoc(reqRef)
+  if (!reqSnap.exists()) throw new Error('teamRequest not found')
+  const r = reqSnap.data()
+  if (r.kind === 'join') {
+    await updateDoc(doc(db, 'teams', r.teamId), {
+      memberIds: arrayUnion(r.fromUid),
+      updatedAt: serverTimestamp(),
+    })
+    const team = await fetchTeam(r.teamId)
+    await createFsNotification({
+      userId: r.fromUid,
+      type: 'team_invite',
+      content: `「${team?.name || 'チーム'}」への加入が承認されました`,
+    })
+  } else if (r.kind === 'friend_team' && r.fromTeamId) {
+    await updateDoc(doc(db, 'teams', r.fromTeamId), {
+      friendTeamIds: arrayUnion(r.teamId),
+      updatedAt: serverTimestamp(),
+    })
+    await updateDoc(doc(db, 'teams', r.teamId), {
+      friendTeamIds: arrayUnion(r.fromTeamId),
+      updatedAt: serverTimestamp(),
+    })
+    const toTeam = await fetchTeam(r.teamId)
+    await createFsNotification({
+      userId: r.fromUid,
+      type: 'friend_team_request',
+      content: `「${toTeam?.name || 'チーム'}」がフレンドチーム申請を承認しました`,
+    })
   }
+  await updateDoc(reqRef, { status: 'accepted', processedAt: serverTimestamp() })
+  console.log('[teamRequests] accepted', requestId)
 }
 
 export async function declineFsTeamRequest(requestId) {
-  if (!db || !requestId) return
+  if (!db || !requestId) throw new Error('db or requestId missing')
   await authReady
-  try {
-    await deleteDoc(doc(db, 'teamRequests', requestId))
-    console.log('[teamRequests] declined', requestId)
-  } catch (e) {
-    console.error('[teamRequests] decline failed', e)
-  }
+  await deleteDoc(doc(db, 'teamRequests', requestId))
+  console.log('[teamRequests] declined', requestId)
 }
 
 // Captain subscribes to incoming pending requests for the teams they captain.

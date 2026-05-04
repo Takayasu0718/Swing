@@ -595,14 +595,20 @@ export default function TeamScreen() {
                     <button
                       type="button"
                       className="small-btn filled"
-                      onClick={() => acceptFsTeamRequest(req.id)}
+                      onClick={async () => {
+                        try { await acceptFsTeamRequest(req.id) }
+                        catch (e) { alert(`承認に失敗: ${e?.message || e}`) }
+                      }}
                     >
                       承認
                     </button>
                     <button
                       type="button"
                       className="small-btn"
-                      onClick={() => declineFsTeamRequest(req.id)}
+                      onClick={async () => {
+                        try { await declineFsTeamRequest(req.id) }
+                        catch (e) { alert(`拒否に失敗: ${e?.message || e}`) }
+                      }}
                     >
                       拒否
                     </button>

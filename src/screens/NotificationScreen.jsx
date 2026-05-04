@@ -115,32 +115,50 @@ export default function NotificationScreen() {
   const toggleActivityLike = (activityId) => activities.toggleLike(activityId, me.id)
   const toggleFsLike = (notifId) => toggleLikeFsNotification(notifId, myUid)
 
-  const handleAccept = (n) => {
-    if (n.source === 'fs') {
-      if (n.type === 'friend_request' && n.requestId) acceptFriendRequestFs(n.requestId)
-      else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
-        if (n.requestId) acceptFsTeamRequest(n.requestId)
+  const handleAccept = async (n) => {
+    console.log('[notif] accept clicked', { type: n.type, source: n.source, requestId: n.requestId })
+    try {
+      if (n.source === 'fs') {
+        if (n.type === 'friend_request' && n.requestId) {
+          await acceptFriendRequestFs(n.requestId)
+        } else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
+          if (!n.requestId) {
+            alert('この申請には requestId がありません（古い通知の可能性）。再度申請してもらってください。')
+            return
+          }
+          await acceptFsTeamRequest(n.requestId)
+        }
+      } else {
+        if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
+        else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
+        else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
       }
-    } else {
-      if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
-      else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
-      else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
+      markRead(n)
+    } catch (e) {
+      console.error('[notif] accept failed', e)
+      alert(`承認に失敗しました: ${e?.message || e}`)
     }
-    markRead(n)
   }
 
-  const handleDecline = (n) => {
-    if (n.source === 'fs') {
-      if (n.type === 'friend_request' && n.requestId) declineFriendRequestFs(n.requestId)
-      else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
-        if (n.requestId) declineFsTeamRequest(n.requestId)
+  const handleDecline = async (n) => {
+    console.log('[notif] decline clicked', { type: n.type, source: n.source, requestId: n.requestId })
+    try {
+      if (n.source === 'fs') {
+        if (n.type === 'friend_request' && n.requestId) {
+          await declineFriendRequestFs(n.requestId)
+        } else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
+          if (n.requestId) await declineFsTeamRequest(n.requestId)
+        }
+      } else {
+        if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
+        else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
+        else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
       }
-    } else {
-      if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
-      else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
-      else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
+      markRead(n)
+    } catch (e) {
+      console.error('[notif] decline failed', e)
+      alert(`拒否に失敗しました: ${e?.message || e}`)
     }
-    markRead(n)
   }
 
   return (
