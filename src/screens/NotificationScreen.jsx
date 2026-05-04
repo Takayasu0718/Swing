@@ -22,6 +22,7 @@ import {
   acceptFriendRequestFs,
   declineFriendRequestFs,
 } from '../lib/firestoreFriends.js'
+import { useState } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreNotifications } from '../hooks/useFirestoreNotifications.jsx'
@@ -82,7 +83,23 @@ export default function NotificationScreen() {
   const { openProfile } = useProfile()
   const { allUsers } = useFirestoreFriends()
   const { items: fsItems, myUid } = useFirestoreNotifications()
+  // 既に承認/拒否ボタンを押した通知 ID（楽観的に二重操作を防ぐ）
+  const [processedNotifIds, setProcessedNotifIds] = useState(() => new Set())
+  // 処理中（API 完了待ち）の通知 ID — ボタンを disabled にする用
+  const [pendingNotifIds, setPendingNotifIds] = useState(() => new Set())
   if (!me) return null
+
+  const markProcessed = (id) => {
+    setProcessedNotifIds((prev) => new Set(prev).add(id))
+  }
+  const markPending = (id, on) => {
+    setPendingNotifIds((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
 
   // localStorage の通知（source 識別用に local を付与）
   const localItems = notifications
@@ -116,7 +133,9 @@ export default function NotificationScreen() {
   const toggleFsLike = (notifId) => toggleLikeFsNotification(notifId, myUid)
 
   const handleAccept = async (n) => {
+    if (processedNotifIds.has(n.id) || pendingNotifIds.has(n.id)) return
     console.log('[notif] accept clicked', { type: n.type, source: n.source, requestId: n.requestId })
+    markPending(n.id, true)
     try {
       if (n.source === 'fs') {
         if (n.type === 'friend_request' && n.requestId) {
@@ -134,14 +153,19 @@ export default function NotificationScreen() {
         else if (n.type === 'friend_team_request') acceptFriendTeamRequest(n.requestId)
       }
       markRead(n)
+      markProcessed(n.id)
     } catch (e) {
       console.error('[notif] accept failed', e)
       alert(`承認に失敗しました: ${e?.message || e}`)
+    } finally {
+      markPending(n.id, false)
     }
   }
 
   const handleDecline = async (n) => {
+    if (processedNotifIds.has(n.id) || pendingNotifIds.has(n.id)) return
     console.log('[notif] decline clicked', { type: n.type, source: n.source, requestId: n.requestId })
+    markPending(n.id, true)
     try {
       if (n.source === 'fs') {
         if (n.type === 'friend_request' && n.requestId) {
@@ -155,9 +179,12 @@ export default function NotificationScreen() {
         else if (n.type === 'friend_team_request') declineFriendTeamRequest(n.requestId)
       }
       markRead(n)
+      markProcessed(n.id)
     } catch (e) {
       console.error('[notif] decline failed', e)
       alert(`拒否に失敗しました: ${e?.message || e}`)
+    } finally {
+      markPending(n.id, false)
     }
   }
 
@@ -196,7 +223,11 @@ export default function NotificationScreen() {
             const likeCount =
               n.source === 'fs' ? n.likeUserIds?.length ?? 0 : activity?.likeUserIds?.length ?? 0
             // FS 通知は requestId があれば actionable とする（pending 状態は accept 側で確認）
+            // 既に処理済み（承認・拒否押下後）はボタン非表示
+            const isProcessed = processedNotifIds.has(n.id)
+            const isPending = pendingNotifIds.has(n.id)
             const actionable =
+              !isProcessed &&
               ACTIONABLE_TYPES.has(n.type) &&
               (n.source === 'fs'
                 ? !!n.requestId
@@ -232,16 +263,18 @@ export default function NotificationScreen() {
                       <button
                         type="button"
                         className="small-btn filled"
+                        disabled={isPending}
                         onClick={(e) => { e.stopPropagation(); handleAccept(n) }}
                       >
-                        承認
+                        {isPending ? '処理中…' : '承認'}
                       </button>
                       <button
                         type="button"
                         className="small-btn"
+                        disabled={isPending}
                         onClick={(e) => { e.stopPropagation(); handleDecline(n) }}
                       >
-                        拒否
+                        {isPending ? '処理中…' : '拒否'}
                       </button>
                     </div>
                   )}

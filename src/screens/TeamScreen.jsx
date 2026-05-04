@@ -90,6 +90,9 @@ export default function TeamScreen() {
   // 楽観的 UI 用: 送信直後にラウンドトリップを待たず「申請中」を表示
   const [pendingFriendTeamReqs, setPendingFriendTeamReqs] = useState(() => new Set())
   const [pendingJoinReqs, setPendingJoinReqs] = useState(() => new Set())
+  // 処理済み・処理中のチーム宛申請 ID（承認/拒否ボタンの二重押下防止）
+  const [processedIncomingIds, setProcessedIncomingIds] = useState(() => new Set())
+  const [actingIncomingIds, setActingIncomingIds] = useState(() => new Set())
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
@@ -552,8 +555,10 @@ export default function TeamScreen() {
       />
 
       {isFsTeam && isCaptain && incomingRequests.length > 0 && (() => {
-        const joinReqs = incomingRequests.filter((r) => r.kind === 'join')
-        const friendTeamReqs = incomingRequests.filter((r) => r.kind === 'friend_team')
+        // 既に処理済み（楽観的に hide）の申請は除外
+        const visible = incomingRequests.filter((r) => !processedIncomingIds.has(r.id))
+        const joinReqs = visible.filter((r) => r.kind === 'join')
+        const friendTeamReqs = visible.filter((r) => r.kind === 'friend_team')
         const groups = [
           { kind: 'friend_team', title: 'フレンドチーム申請', items: friendTeamReqs },
           { kind: 'join', title: '加入申請', items: joinReqs },
@@ -595,22 +600,44 @@ export default function TeamScreen() {
                     <button
                       type="button"
                       className="small-btn filled"
+                      disabled={actingIncomingIds.has(req.id)}
                       onClick={async () => {
-                        try { await acceptFsTeamRequest(req.id) }
-                        catch (e) { alert(`承認に失敗: ${e?.message || e}`) }
+                        if (actingIncomingIds.has(req.id) || processedIncomingIds.has(req.id)) return
+                        setActingIncomingIds((p) => new Set(p).add(req.id))
+                        try {
+                          await acceptFsTeamRequest(req.id)
+                          setProcessedIncomingIds((p) => new Set(p).add(req.id))
+                        } catch (e) {
+                          alert(`承認に失敗: ${e?.message || e}`)
+                        } finally {
+                          setActingIncomingIds((p) => {
+                            const next = new Set(p); next.delete(req.id); return next
+                          })
+                        }
                       }}
                     >
-                      承認
+                      {actingIncomingIds.has(req.id) ? '処理中…' : '承認'}
                     </button>
                     <button
                       type="button"
                       className="small-btn"
+                      disabled={actingIncomingIds.has(req.id)}
                       onClick={async () => {
-                        try { await declineFsTeamRequest(req.id) }
-                        catch (e) { alert(`拒否に失敗: ${e?.message || e}`) }
+                        if (actingIncomingIds.has(req.id) || processedIncomingIds.has(req.id)) return
+                        setActingIncomingIds((p) => new Set(p).add(req.id))
+                        try {
+                          await declineFsTeamRequest(req.id)
+                          setProcessedIncomingIds((p) => new Set(p).add(req.id))
+                        } catch (e) {
+                          alert(`拒否に失敗: ${e?.message || e}`)
+                        } finally {
+                          setActingIncomingIds((p) => {
+                            const next = new Set(p); next.delete(req.id); return next
+                          })
+                        }
                       }}
                     >
-                      拒否
+                      {actingIncomingIds.has(req.id) ? '処理中…' : '拒否'}
                     </button>
                   </div>
                 </li>
