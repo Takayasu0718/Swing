@@ -357,15 +357,16 @@ export default function TeamScreen() {
   const friendTeams = friendTeamIds
     .map((fid) => (allFsTeams || []).find((t) => t.id === fid) || teams.get(fid))
     .filter(Boolean)
-  // Exclude match_result from teammates timeline — shown separately in 試合結果 card.
+  // match_result は試合結果カードで別表示、level_up は表示対象外。
+  const isHiddenInTimeline = (a) =>
+    a.type === ACTIVITY_TYPES.MATCH_RESULT || a.type === ACTIVITY_TYPES.LEVEL_UP
   const localTeamActivities = activities
     .listByTeam(myTeam.id)
-    .filter((a) => a.type !== ACTIVITY_TYPES.MATCH_RESULT)
+    .filter((a) => !isHiddenInTimeline(a))
     .map((a) => ({ ...a, source: 'local' }))
   const fsTeamActivities = isFsTeam
     ? (allFsActivities || []).filter(
-        (a) =>
-          a.teamId === myTeam.id && a.type !== ACTIVITY_TYPES.MATCH_RESULT,
+        (a) => a.teamId === myTeam.id && !isHiddenInTimeline(a),
       )
     : []
   const teamActivities = [...fsTeamActivities, ...localTeamActivities].sort((a, b) =>
