@@ -396,68 +396,93 @@ export default function HomeScreen() {
               const bump = bumps[item.key]
               const isCustom = item.key === 'custom'
               const labelText = isCustom ? (customLabel || '（項目を入力）') : item.label
+              const canSelect = !isCustom || (!!customLabel && !editingCustomLabel)
+              const handleRowClick = () => {
+                if (editingCustomLabel) return
+                if (!canSelect) return
+                toggleStatusKey(item.key)
+              }
               return (
-                <div key={item.key} className={`batting-row ${selected ? 'selected' : ''}`}>
-                  <button
-                    type="button"
-                    className="batting-row-toggle"
-                    onClick={() => !editingCustomLabel && toggleStatusKey(item.key)}
-                    aria-pressed={selected}
-                    disabled={isCustom && !customLabel && !editingCustomLabel}
-                  >
-                    <div className="batting-row-head">
-                      <span className="batting-row-check" aria-hidden>
-                        {selected ? '☑' : '☐'}
-                      </span>
-                      {isCustom && editingCustomLabel ? (
-                        <input
-                          type="text"
-                          className="batting-custom-input"
-                          value={customLabelDraft}
-                          onChange={(e) => setCustomLabelDraft(e.target.value.slice(0, 12))}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          maxLength={12}
-                          placeholder="意識する項目"
-                        />
-                      ) : (
-                        <span className="batting-row-label">{labelText}</span>
-                      )}
-                      {isCustom && !editingCustomLabel && (
-                        <button
-                          type="button"
-                          className="small-btn batting-edit-btn"
-                          onClick={(e) => { e.stopPropagation(); startEditCustomLabel() }}
-                        >
-                          {customLabel ? '編集' : '入力'}
-                        </button>
-                      )}
-                      {isCustom && editingCustomLabel && (
-                        <button
-                          type="button"
-                          className="small-btn filled batting-edit-btn"
-                          onClick={(e) => { e.stopPropagation(); saveCustomLabel() }}
-                        >
-                          保存
-                        </button>
-                      )}
-                      <span className="batting-row-value">{value}</span>
-                    </div>
-                    <div className="batting-bar-track">
-                      <div
-                        className="batting-bar-fill"
-                        style={{ width: `${widthPct}%` }}
+                <div
+                  key={item.key}
+                  className={`batting-row ${selected ? 'selected' : ''} ${!canSelect ? 'disabled' : ''}`}
+                >
+                  <div className="batting-row-head">
+                    <span className="batting-row-check" aria-hidden>
+                      {selected ? '☑' : '☐'}
+                    </span>
+                    {isCustom && editingCustomLabel ? (
+                      <input
+                        type="text"
+                        className="batting-custom-input"
+                        value={customLabelDraft}
+                        onChange={(e) => setCustomLabelDraft(e.target.value.slice(0, 12))}
+                        autoFocus
+                        maxLength={12}
+                        placeholder="意識する項目"
                       />
-                      {bump && (
-                        <span
-                          key={`${item.key}-${bump.seed}`}
-                          className="batting-bump-pop"
-                        >
-                          +{bump.points}
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                    ) : (
+                      <span
+                        className="batting-row-label"
+                        role={canSelect ? 'button' : undefined}
+                        tabIndex={canSelect ? 0 : -1}
+                        onClick={handleRowClick}
+                        onKeyDown={(e) => {
+                          if (canSelect && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault()
+                            handleRowClick()
+                          }
+                        }}
+                      >
+                        {labelText}
+                      </span>
+                    )}
+                    {isCustom && !editingCustomLabel && (
+                      <button
+                        type="button"
+                        className="small-btn batting-edit-btn"
+                        onClick={startEditCustomLabel}
+                      >
+                        {customLabel ? '編集' : '入力'}
+                      </button>
+                    )}
+                    {isCustom && editingCustomLabel && (
+                      <button
+                        type="button"
+                        className="small-btn filled batting-edit-btn"
+                        onClick={saveCustomLabel}
+                      >
+                        保存
+                      </button>
+                    )}
+                    <span className="batting-row-value">{value}</span>
+                  </div>
+                  <div
+                    className="batting-bar-track"
+                    role={canSelect ? 'button' : undefined}
+                    tabIndex={canSelect ? 0 : -1}
+                    onClick={handleRowClick}
+                    onKeyDown={(e) => {
+                      if (canSelect && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault()
+                        handleRowClick()
+                      }
+                    }}
+                    aria-pressed={selected}
+                  >
+                    <div
+                      className="batting-bar-fill"
+                      style={{ width: `${widthPct}%` }}
+                    />
+                    {bump && (
+                      <span
+                        key={`${item.key}-${bump.seed}`}
+                        className="batting-bump-pop"
+                      >
+                        +{bump.points}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}

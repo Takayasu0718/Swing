@@ -327,19 +327,24 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.batting-row-toggle {
-  width: 100%;
-  background: transparent;
-  border: none;
+.batting-row.disabled {
+  opacity: 0.7;
+}
+
+.batting-row {
   padding: 0.6rem 0.8rem;
-  font-family: inherit;
-  text-align: left;
+}
+
+.batting-row-label[role="button"],
+.batting-bar-track[role="button"] {
   cursor: pointer;
 }
 
-.batting-row-toggle:disabled {
-  cursor: default;
-  opacity: 0.7;
+.batting-row-label:focus-visible,
+.batting-bar-track:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .batting-row-head {
