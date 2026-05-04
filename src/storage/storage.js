@@ -103,6 +103,9 @@ export const users = {
       advice: '',
       childIds: [],
       guardianId: null,
+      battingStatus: { speed: 0, lowerBody: 0, course: 0, timing: 0, custom: 0 },
+      customStatusLabel: '',
+      battingStatusPenaltyCount: 0,
       ...data,
       createdAt: now(),
       updatedAt: now(),
@@ -128,6 +131,39 @@ export const users = {
   remove(id) {
     saveUsers(loadUsers().filter((u) => u.id !== id))
     bump()
+  },
+  // バッティングステータスに加点（負数で減点も可、0 で下限クランプ）
+  addBattingPoints(userId, deltas) {
+    const arr = loadUsers()
+    const idx = arr.findIndex((u) => u.id === userId)
+    if (idx === -1) return null
+    const current = arr[idx].battingStatus || { speed: 0, lowerBody: 0, course: 0, timing: 0, custom: 0 }
+    const next = { ...current }
+    for (const [k, v] of Object.entries(deltas || {})) {
+      next[k] = Math.max(0, (next[k] ?? 0) + v)
+    }
+    arr[idx] = { ...arr[idx], battingStatus: next, updatedAt: now() }
+    saveUsers(arr)
+    bump()
+    return next
+  },
+  setCustomStatusLabel(userId, label) {
+    const arr = loadUsers()
+    const idx = arr.findIndex((u) => u.id === userId)
+    if (idx === -1) return null
+    arr[idx] = { ...arr[idx], customStatusLabel: (label || '').slice(0, 12), updatedAt: now() }
+    saveUsers(arr)
+    bump()
+    return arr[idx]
+  },
+  setBattingPenaltyCount(userId, count) {
+    const arr = loadUsers()
+    const idx = arr.findIndex((u) => u.id === userId)
+    if (idx === -1) return null
+    arr[idx] = { ...arr[idx], battingStatusPenaltyCount: Math.max(0, count | 0), updatedAt: now() }
+    saveUsers(arr)
+    bump()
+    return arr[idx]
   },
 }
 

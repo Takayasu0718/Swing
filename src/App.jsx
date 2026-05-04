@@ -7,6 +7,7 @@ import { syncUserProfile } from './lib/firestoreSync.js'
 import { subscribeMyConversations } from './lib/firestoreDms.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'
 import { maybeFireGoalReminder } from './lib/reminder.js'
+import { applyMissPenaltyIfNeeded } from './lib/battingPenalty.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -63,6 +64,11 @@ function AppShell() {
     const myLastReadAt = c.lastReadAt?.[myUid]
     return !myLastReadAt || myLastReadAt < c.lastMessageAt
   }).length
+
+  // バッティングステータスの未達成ペナルティを適用（起動時に1回）
+  useEffect(() => {
+    if (current?.id) applyMissPenaltyIfNeeded(current.id)
+  }, [current?.id])
 
   useEffect(() => {
     if (current) {

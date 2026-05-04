@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { users, missions, teams, settings } from '../storage/storage.js'
-import { ROLES } from '../storage/schema.js'
+import { ROLES, BATTING_STATUS_KEYS, BATTING_STATUS_MAX } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
 import { levelFromProgress, daysUntilNextLevel, stageImage } from '../lib/dragon.js'
@@ -55,25 +55,6 @@ function computeWeeklyData(completedMissions) {
   return slots
 }
 
-function computeAnalytics(completedMissions) {
-  const nowMs = Date.now()
-  const dayMs = 24 * 3600 * 1000
-  const within = (m, days) => {
-    const ts = m.approvedAt
-      ? new Date(m.approvedAt).getTime()
-      : m.date
-        ? new Date(`${m.date}T00:00:00`).getTime()
-        : 0
-    return Number.isFinite(ts) && nowMs - ts <= days * dayMs
-  }
-  const sumGoal = (arr) => arr.reduce((s, m) => s + (m.goal || 0), 0)
-  const last7Sum = sumGoal(completedMissions.filter((m) => within(m, 7)))
-  const last30Sum = sumGoal(completedMissions.filter((m) => within(m, 30)))
-  const totalSwings = sumGoal(completedMissions)
-  const longestStreak = computeLongestStreak(completedMissions)
-  return { last7Sum, last30Sum, totalSwings, longestStreak }
-}
-
 export default function HomeScreen() {
   const user = users.getCurrent()
   const { openProfile } = useProfile()
@@ -82,6 +63,13 @@ export default function HomeScreen() {
   const [ranking, setRanking] = useState([])
   // 達成ボタン押下時のエフェクト用パーティクル
   const [burst, setBurst] = useState({ seed: 0, particles: [] })
+  // バッティングステータスの選択（claim 前に1〜2個）
+  const [selectedStatusKeys, setSelectedStatusKeys] = useState(() => new Set())
+  // バー伸び時の「+N」フローティング演出（key ごとに { points, seed } を保持）
+  const [bumps, setBumps] = useState({})
+  // カスタムラベル編集
+  const [editingCustomLabel, setEditingCustomLabel] = useState(false)
+  const [customLabelDraft, setCustomLabelDraft] = useState('')
 
   const fsFriendUids = (fsFriendships || [])
     .filter((f) => f.status === 'accepted')
@@ -141,26 +129,37 @@ export default function HomeScreen() {
   const todaySwingCount = completedMissions.find((m) => m.date === todayKey())?.goal ?? 0
   const totalSwingCount = completedMissions.reduce((sum, m) => sum + (m.goal ?? 0), 0)
 
-  if (isPlayer) {
-    console.log('[analytics] source missions', completedMissions)
-  }
-
-  const analytics = computeAnalytics(completedMissions)
   const weeklyData = computeWeeklyData(completedMissions)
   const weeklyMax = Math.max(...weeklyData.map((d) => d.count), 0)
   const weeklyHasData = weeklyMax > 0
 
-  if (isPlayer) {
-    console.log('[chart] weekly data', weeklyData)
+  // バッティングステータスの値（旧アカウントには存在しないので空オブジェクトでフォールバック）
+  const battingStatus = user.battingStatus || {}
+  const customLabel = user.customStatusLabel || ''
+
+  const toggleStatusKey = (k) => {
+    setSelectedStatusKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(k)) next.delete(k)
+      else if (next.size >= 2) {
+        // 既に2つ選択中なら、最も古い1つを削除して新しいのを追加
+        const first = next.values().next().value
+        next.delete(first)
+        next.add(k)
+      } else {
+        next.add(k)
+      }
+      return next
+    })
   }
 
-  if (isPlayer) {
-    console.log('[analytics]', {
-      last7Sum: analytics.last7Sum,
-      last30Sum: analytics.last30Sum,
-      totalSwings: analytics.totalSwings,
-      longestStreak: analytics.longestStreak,
-    })
+  const startEditCustomLabel = () => {
+    setCustomLabelDraft(customLabel)
+    setEditingCustomLabel(true)
+  }
+  const saveCustomLabel = () => {
+    users.update(user.id, { customStatusLabel: customLabelDraft.trim().slice(0, 12) })
+    setEditingCustomLabel(false)
   }
 
   // コーチアドバイスは Firestore 側のユーザー（allUsers）と localStorage の両方から取得して結合
@@ -197,6 +196,7 @@ export default function HomeScreen() {
   const completed = !!todayMission?.completed
 
   const claimMission = () => {
+    if (selectedStatusKeys.size < 1 || selectedStatusKeys.size > 2) return
     console.log('[swing] button clicked', {
       action: 'claim',
       swingCount: user.dailyGoal,
@@ -217,6 +217,31 @@ export default function HomeScreen() {
       }
     })
     setBurst({ seed: Date.now(), particles })
+
+    // バッティングステータス加点: Lv up 予測で 2x 倍率
+    const futureDays = achievementDays + 1
+    const futureStreak = streak + 1
+    const futureLongest = Math.max(longestStreak, futureStreak)
+    const levelBefore = level
+    const levelAfter = levelFromProgress(futureDays, futureLongest)
+    const multiplier = levelAfter > levelBefore ? 2 : 1
+    const basePerSelection = selectedStatusKeys.size === 1 ? 4 : 2
+    const points = basePerSelection * multiplier
+    const deltas = {}
+    const seed = Date.now()
+    const newBumps = {}
+    for (const k of selectedStatusKeys) {
+      deltas[k] = points
+      newBumps[k] = { points, seed }
+    }
+    users.addBattingPoints(user.id, deltas)
+    setBumps(newBumps)
+    setSelectedStatusKeys(new Set())
+    // ペナルティカウンタをリセット（連続未達成が止まったので）
+    if (user.battingStatusPenaltyCount) {
+      users.setBattingPenaltyCount(user.id, 0)
+    }
+
     missions.claim(user.id, today, user.dailyGoal)
   }
   const approveMission = () => {
@@ -291,42 +316,6 @@ export default function HomeScreen() {
         </section>
       )}
 
-      {isPlayer && (
-        <section className="info-card">
-          <div className="card-title">分析</div>
-          <div className="analytics-grid">
-            <div className="analytics-cell">
-              <div className="analytics-label">直近7日</div>
-              <div className="analytics-value">
-                {analytics.last7Sum.toLocaleString()}
-                <span className="stat-unit">回</span>
-              </div>
-            </div>
-            <div className="analytics-cell">
-              <div className="analytics-label">直近30日</div>
-              <div className="analytics-value">
-                {analytics.last30Sum.toLocaleString()}
-                <span className="stat-unit">回</span>
-              </div>
-            </div>
-            <div className="analytics-cell">
-              <div className="analytics-label">過去累積</div>
-              <div className="analytics-value">
-                {analytics.totalSwings.toLocaleString()}
-                <span className="stat-unit">回</span>
-              </div>
-            </div>
-            <div className="analytics-cell">
-              <div className="analytics-label">最長連続達成</div>
-              <div className="analytics-value">
-                {analytics.longestStreak}
-                <span className="stat-unit">日</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {showDragonAndRanking && showAllUserRanking && (
         <section className="info-card">
           <div className="card-title">全ユーザーランキング（直近7日 / 上位10名）</div>
@@ -394,6 +383,89 @@ export default function HomeScreen() {
       )}
 
       {isPlayer && (
+        <section className="info-card">
+          <div className="card-title">
+            バッティングステータス
+            <span className="meta-tag">意識する項目を1〜2個選択（{selectedStatusKeys.size}/2）</span>
+          </div>
+          <div className="batting-status-list">
+            {BATTING_STATUS_KEYS.map((item) => {
+              const value = battingStatus[item.key] || 0
+              const widthPct = Math.min(100, (value / BATTING_STATUS_MAX) * 100)
+              const selected = selectedStatusKeys.has(item.key)
+              const bump = bumps[item.key]
+              const isCustom = item.key === 'custom'
+              const labelText = isCustom ? (customLabel || '（項目を入力）') : item.label
+              return (
+                <div key={item.key} className={`batting-row ${selected ? 'selected' : ''}`}>
+                  <button
+                    type="button"
+                    className="batting-row-toggle"
+                    onClick={() => !editingCustomLabel && toggleStatusKey(item.key)}
+                    aria-pressed={selected}
+                    disabled={isCustom && !customLabel && !editingCustomLabel}
+                  >
+                    <div className="batting-row-head">
+                      <span className="batting-row-check" aria-hidden>
+                        {selected ? '☑' : '☐'}
+                      </span>
+                      {isCustom && editingCustomLabel ? (
+                        <input
+                          type="text"
+                          className="batting-custom-input"
+                          value={customLabelDraft}
+                          onChange={(e) => setCustomLabelDraft(e.target.value.slice(0, 12))}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          maxLength={12}
+                          placeholder="意識する項目"
+                        />
+                      ) : (
+                        <span className="batting-row-label">{labelText}</span>
+                      )}
+                      {isCustom && !editingCustomLabel && (
+                        <button
+                          type="button"
+                          className="small-btn batting-edit-btn"
+                          onClick={(e) => { e.stopPropagation(); startEditCustomLabel() }}
+                        >
+                          {customLabel ? '編集' : '入力'}
+                        </button>
+                      )}
+                      {isCustom && editingCustomLabel && (
+                        <button
+                          type="button"
+                          className="small-btn filled batting-edit-btn"
+                          onClick={(e) => { e.stopPropagation(); saveCustomLabel() }}
+                        >
+                          保存
+                        </button>
+                      )}
+                      <span className="batting-row-value">{value}</span>
+                    </div>
+                    <div className="batting-bar-track">
+                      <div
+                        className="batting-bar-fill"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                      {bump && (
+                        <span
+                          key={`${item.key}-${bump.seed}`}
+                          className="batting-bump-pop"
+                        >
+                          +{bump.points}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {isPlayer && (
         <section className={`mission-card ${completed ? 'done' : ''} ${burst.seed > 0 ? 'bursting' : ''}`}>
           <div className="mission-head">
             <span className="mission-title">デイリーミッション</span>
@@ -415,8 +487,14 @@ export default function HomeScreen() {
                   達成済み（保護者の承認待ち）
                 </button>
               ) : (
-                <button className="claim-btn" onClick={claimMission}>
-                  達成
+                <button
+                  className="claim-btn"
+                  onClick={claimMission}
+                  disabled={selectedStatusKeys.size < 1 || selectedStatusKeys.size > 2}
+                >
+                  {selectedStatusKeys.size === 0
+                    ? '意識する項目を選んでね'
+                    : `達成（${selectedStatusKeys.size === 1 ? '+4pt' : '+2pt × 2'}）`}
                 </button>
               )}
             </>

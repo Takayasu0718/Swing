@@ -111,6 +111,18 @@ export const ROLE_LABELS = Object.freeze({
 
 export const DAILY_GOAL_OPTIONS = Object.freeze([25, 50, 75, 100, 125, 150, 175, 200])
 
+// バッティングステータスの5項目。custom はユーザー自由入力ラベル。
+export const BATTING_STATUS_KEYS = Object.freeze([
+  { key: 'speed', label: 'スイングスピード強化' },
+  { key: 'lowerBody', label: '下半身意識' },
+  { key: 'course', label: 'コース意識' },
+  { key: 'timing', label: 'タイミング意識' },
+  { key: 'custom', label: '' }, // user-defined; falls back to customStatusLabel
+])
+
+export const BATTING_STATUS_MAX = 100
+export const BATTING_PENALTY_INTERVAL_DAYS = 5
+
 // User ID（@ハンドル）: 半角英数字 + アンダーバー + ハイフン、3〜20文字
 export const USER_ID_REGEX = /^[a-zA-Z0-9_-]{3,20}$/
 export const USER_ID_RULE = '半角英数字、アンダーバー、ハイフン、3〜20文字'
