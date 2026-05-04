@@ -104,7 +104,7 @@ export default function GuardianScreen({ onNavigate }) {
 
   return (
     <div className="screen">
-      <h1 className="screen-title">保護者メニュー</h1>
+      <h1 className="screen-title">設定</h1>
 
       <section className="info-card">
         <div className="card-title">登録済みのプロフィール</div>

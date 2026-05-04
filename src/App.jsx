@@ -35,7 +35,7 @@ const TABS = [
   { key: 'notif', label: '通知', icon: '🔔' },
   { key: 'friends', label: '友達', icon: '👥' },
   { key: 'team', label: 'チーム', icon: '⚾' },
-  { key: 'guardian', label: '保護者', icon: '👪' },
+  { key: 'guardian', label: '設定', icon: '⚙️' },
 ]
 
 function AppShell() {
