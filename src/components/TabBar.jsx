@@ -13,7 +13,11 @@ export default function TabBar({ tabs, active, onChange, locked, badges = {} }) 
             onClick={() => onChange(t.key)}
           >
             <span className="tab-icon" aria-hidden>
-              {t.icon}
+              {t.iconImg ? (
+                <img src={t.iconImg} alt="" className="tab-icon-img" />
+              ) : (
+                t.icon
+              )}
               {badge > 0 && (
                 <span className="tab-badge">{badge > 99 ? '99+' : badge}</span>
               )}

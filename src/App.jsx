@@ -29,13 +29,20 @@ import {
 import { FirestoreActivitiesProvider } from './hooks/useFirestoreActivities.jsx'
 import { markAllReadFsNotifications } from './lib/firestoreNotifications.js'
 
+import tabRegister from './assets/tabs/register.png'
+import tabHome from './assets/tabs/home.png'
+import tabNotif from './assets/tabs/notif.png'
+import tabFriends from './assets/tabs/friends.png'
+import tabTeam from './assets/tabs/team.png'
+import tabGuardian from './assets/tabs/guardian.png'
+
 const TABS = [
-  { key: 'register', label: '登録', icon: '👤' },
-  { key: 'home', label: 'ホーム', icon: '🏠' },
-  { key: 'notif', label: '通知', icon: '🔔' },
-  { key: 'friends', label: '友達', icon: '👥' },
-  { key: 'team', label: 'チーム', icon: '⚾' },
-  { key: 'guardian', label: '設定', icon: '⚙️' },
+  { key: 'register', label: '登録', iconImg: tabRegister },
+  { key: 'home', label: 'ホーム', iconImg: tabHome },
+  { key: 'notif', label: '通知', iconImg: tabNotif },
+  { key: 'friends', label: '友達', iconImg: tabFriends },
+  { key: 'team', label: 'チーム', iconImg: tabTeam },
+  { key: 'guardian', label: '設定', iconImg: tabGuardian },
 ]
 
 function AppShell() {

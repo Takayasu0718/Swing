@@ -22,7 +22,12 @@
       "Bash(sips -c 1536 1536 --cropOffset 0 1278 /Users/sasakitakayasu/Downloads/Gemini_Generated_Image_id68q3id68q3id68.png --out /tmp/dragon_cropped.png)",
       "Bash(sips -Z 512 /tmp/dragon_cropped.png --out /Users/sasakitakayasu/swing-app/src/assets/dragon/stage1.png)",
       "Read(//Users/sasakitakayasu/Downloads/**)",
-      "Bash(sips -Z 512 /Users/sasakitakayasu/Downloads/Gemini_Generated_Image_a1vfxoa1vfxoa1vf.png --out /Users/sasakitakayasu/swing-app/src/assets/dragon/stage1.png)"
+      "Bash(sips -Z 512 /Users/sasakitakayasu/Downloads/Gemini_Generated_Image_a1vfxoa1vfxoa1vf.png --out /Users/sasakitakayasu/swing-app/src/assets/dragon/stage1.png)",
+      "Bash(mkdir -p /tmp/imgsplit)",
+      "Read(//private/tmp/imgsplit/**)",
+      "Bash(npm init *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)"
     ]
   }
 }

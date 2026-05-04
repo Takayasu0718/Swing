@@ -2369,6 +2369,22 @@ button.friend-chip:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 28px;
+}
+
+.tab-icon-img {
+  width: auto;
+  height: 28px;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+  filter: grayscale(0.45) brightness(0.95);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.tab.active .tab-icon-img {
+  filter: none;
+  transform: translateY(-1px) scale(1.05);
 }
 
 .tab-badge {
