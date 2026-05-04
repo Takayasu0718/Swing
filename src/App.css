@@ -2373,17 +2373,23 @@ button.friend-chip:hover {
 }
 
 .tab-icon-img {
-  width: auto;
-  height: 28px;
   display: block;
+  width: 30px;
+  height: 28px;
+  background-color: var(--blue-300); /* 通常時: 水色 */
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
   user-select: none;
   pointer-events: none;
-  filter: grayscale(0.45) brightness(0.95);
-  transition: filter 0.15s, transform 0.15s;
+  transition: background-color 0.15s, transform 0.15s;
 }
 
 .tab.active .tab-icon-img {
-  filter: none;
+  background-color: var(--blue-700); /* 選択時: 濃い青 */
   transform: translateY(-1px) scale(1.05);
 }
 

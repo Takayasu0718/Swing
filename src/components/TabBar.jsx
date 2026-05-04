@@ -14,7 +14,13 @@ export default function TabBar({ tabs, active, onChange, locked, badges = {} }) 
           >
             <span className="tab-icon" aria-hidden>
               {t.iconImg ? (
-                <img src={t.iconImg} alt="" className="tab-icon-img" />
+                <span
+                  className="tab-icon-img"
+                  style={{
+                    WebkitMaskImage: `url(${t.iconImg})`,
+                    maskImage: `url(${t.iconImg})`,
+                  }}
+                />
               ) : (
                 t.icon
               )}
