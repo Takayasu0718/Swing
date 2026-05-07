@@ -69,6 +69,7 @@ export function subscribeMyFsNotifications(myUid, callback) {
           requestId: data.requestId ?? null,
           likeUserIds: data.likeUserIds || [],
           read: !!data.read,
+          processed: !!data.processed,
           createdAt: tsToIso(data.createdAt) || new Date().toISOString(),
         }
       })
@@ -86,6 +87,18 @@ export async function markReadFsNotification(notifId) {
     await updateDoc(doc(db, 'notifications', notifId), { read: true })
   } catch (e) {
     console.error('[firestoreNotifications] markRead failed', e)
+  }
+}
+
+// 申請系通知（team_join_request / friend_team_request / friend_request）の
+// 承認・拒否完了をドキュメントに永続化する。再マウント後もボタンを再表示させないため。
+export async function markProcessedFsNotification(notifId) {
+  if (!db || !notifId) return
+  await authReady
+  try {
+    await updateDoc(doc(db, 'notifications', notifId), { processed: true })
+  } catch (e) {
+    console.error('[firestoreNotifications] markProcessed failed', e)
   }
 }
 

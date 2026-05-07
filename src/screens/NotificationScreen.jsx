@@ -12,6 +12,7 @@ import {
 import {
   markReadFsNotification,
   markAllReadFsNotifications,
+  markProcessedFsNotification,
   toggleLikeFsNotification,
 } from '../lib/firestoreNotifications.js'
 import {
@@ -147,6 +148,8 @@ export default function NotificationScreen() {
           }
           await acceptFsTeamRequest(n.requestId)
         }
+        // 通知ドキュメントに processed を立てる（再マウント後もボタン非表示を維持）
+        await markProcessedFsNotification(n.id)
       } else {
         if (n.type === 'friend_request') acceptFriendRequest(resolveFriendshipId(n))
         else if (n.type === 'team_join_request') acceptTeamJoinRequest(n.requestId)
@@ -173,6 +176,7 @@ export default function NotificationScreen() {
         } else if (n.type === 'team_join_request' || n.type === 'friend_team_request') {
           if (n.requestId) await declineFsTeamRequest(n.requestId)
         }
+        await markProcessedFsNotification(n.id)
       } else {
         if (n.type === 'friend_request') declineFriendRequest(resolveFriendshipId(n))
         else if (n.type === 'team_join_request') declineTeamJoinRequest(n.requestId)
@@ -223,15 +227,16 @@ export default function NotificationScreen() {
                 : activity?.likeUserIds?.includes(me.id) ?? false
             const likeCount =
               n.source === 'fs' ? n.likeUserIds?.length ?? 0 : activity?.likeUserIds?.length ?? 0
-            // FS 通知は requestId があれば actionable とする（pending 状態は accept 側で確認）
-            // 既に処理済み（承認・拒否押下後）はボタン非表示
+            // FS 通知は requestId があり processed フラグが立っていなければ actionable。
+            // processed は承認/拒否完了後に通知ドキュメントへ書き込まれるため再マウント後も
+            // 復活しない。ローカル state (isProcessed) は楽観的 UI 用のフォールバック。
             const isProcessed = processedNotifIds.has(n.id)
             const isPending = pendingNotifIds.has(n.id)
             const actionable =
               !isProcessed &&
               ACTIONABLE_TYPES.has(n.type) &&
               (n.source === 'fs'
-                ? !!n.requestId
+                ? !!n.requestId && !n.processed
                 : isRequestPending(n))
             // いいね通知・申請系・リマインダー等にはいいねボタンを出さない
             const showLike = (n.source === 'fs' || !!activity) && !NO_LIKE_TYPES.has(n.type)
