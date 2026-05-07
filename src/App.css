@@ -17,8 +17,9 @@
   --slate-700: #3f3d36;
   --slate-900: #1f1d18;
   --white: #ffffff;
-  /* クリーム寄りの紙のような白（やや透過させて背景に馴染ませる） */
-  --surface: rgba(255, 252, 245, 0.92);
+  /* クリーム寄りの紙のような白（半透明で背景に馴染ませる） */
+  --surface: rgba(255, 252, 245, 0.82);
+  --card-border: rgba(255, 255, 255, 0.35);
   --bg: #f5efe2;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -985,9 +986,9 @@ body.has-baseball-bg .screen-title {
   align-items: center;
   gap: 1rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  border: 1.5px solid var(--blue-100);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid var(--card-border);
 }
 
 .dragon-img {
@@ -1119,10 +1120,10 @@ body.has-baseball-bg .screen-title {
   background: var(--surface);
   border-radius: 16px;
   padding: 1rem;
-  border: 1.5px solid var(--blue-100);
+  border: 1px solid var(--card-border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   position: relative;
 }
 
@@ -1358,10 +1359,10 @@ body.has-baseball-bg .screen-title {
   background: var(--surface);
   border-radius: 16px;
   padding: 1rem;
-  border: 1.5px solid var(--blue-100);
+  border: 1px solid var(--card-border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .card-title {
@@ -2172,14 +2173,14 @@ body.has-baseball-bg .screen-title {
   gap: 0.75rem;
   align-items: flex-start;
   background: var(--surface);
-  border: 1.5px solid var(--blue-100);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   padding: 0.8rem 0.9rem;
   cursor: pointer;
   transition: background 0.15s;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .notif-row.unread {
