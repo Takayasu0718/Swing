@@ -3,7 +3,7 @@ import { users, missions, teams, settings } from '../storage/storage.js'
 import { ROLES, BATTING_STATUS_KEYS, BATTING_STATUS_MAX } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
-import { levelFromProgress, daysUntilNextLevel, stageImage } from '../lib/dragon.js'
+import { levelFromProgress, daysUntilNextLevel } from '../lib/dragon.js'
 import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
@@ -260,28 +260,16 @@ export default function HomeScreen() {
     <div className="screen home">
       {showDragonAndRanking && (
         <section className="dragon-card">
-          <img
-            src={stageImage(level)}
-            alt={`スイングドラゴン Lv${level}`}
-            className="dragon-img"
-            width={140}
-            height={140}
-          />
+          <span className="dragon-img dragon-avatar" aria-hidden>
+            {getStamp(user.avatarStamp).label}
+          </span>
           <div className="dragon-info">
-            <div className="dragon-name">スイングドラゴン</div>
+            <div className="dragon-name">{user.nickname}</div>
             <div className="dragon-level">Lv.{level}</div>
             <div className="dragon-next">次のレベルまで あと <b>{daysToNext}</b> 日</div>
           </div>
         </section>
       )}
-
-      <header className="home-header">
-        <span className="avatar-big" aria-hidden>{getStamp(user.avatarStamp).label}</span>
-        <div>
-          <div className="greet">こんにちは</div>
-          <div className="nickname">{user.nickname}</div>
-        </div>
-      </header>
 
       {isPlayer && (
         <section className="streak-card">
