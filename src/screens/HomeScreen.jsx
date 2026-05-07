@@ -261,7 +261,7 @@ export default function HomeScreen() {
       {showDragonAndRanking && (
         <section className="dragon-card">
           <span className="dragon-img dragon-avatar" aria-hidden>
-            {getStamp(user.avatarStamp).label}
+            <img src={getStamp(user.avatarStamp).image} alt="" />
           </span>
           <div className="dragon-info">
             <div className="dragon-name">{user.nickname}</div>
@@ -323,7 +323,7 @@ export default function HomeScreen() {
                 >
                   <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
                   <span className="activity-stamp small" aria-hidden>
-                    {getStamp(r.avatarStamp).label}
+                    <img src={getStamp(r.avatarStamp).image} alt="" />
                   </span>
                   <span className="ranking-name">
                     {r.nickname}
@@ -572,7 +572,7 @@ export default function HomeScreen() {
               className="advice-item advice-item-btn"
               onClick={() => openProfile(c.userId)}
             >
-              <span className="advice-stamp" aria-hidden>{c.stamp.label}</span>
+              <span className="advice-stamp" aria-hidden><img src={c.stamp.image} alt="" /></span>
               <div>
                 <div className="advice-name">{c.nickname}</div>
                 <div className="advice-text">{c.advice}</div>

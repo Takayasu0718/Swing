@@ -80,7 +80,7 @@ export default function DmOverlay() {
     <div className="dm-overlay" role="dialog" aria-modal="true">
       <header className="dm-header">
         <button type="button" className="dm-back" onClick={closeDm} aria-label="閉じる">‹</button>
-        <span className="activity-stamp" aria-hidden>{getStamp(partner?.avatarStamp).label}</span>
+        <span className="activity-stamp" aria-hidden><img src={getStamp(partner?.avatarStamp).image} alt="" /></span>
         <div className="dm-header-name">{partner?.nickname ?? '相手'}</div>
       </header>
 
@@ -95,7 +95,7 @@ export default function DmOverlay() {
             return (
               <div key={m.id} className={`chat-row ${mine ? 'mine' : ''}`}>
                 <span className="activity-stamp small" aria-hidden>
-                  {mine ? '' : getStamp(partner?.avatarStamp).label}
+                  {mine ? null : <img src={getStamp(partner?.avatarStamp).image} alt="" />}
                 </span>
                 <div className="chat-body">
                   <div className="chat-head">

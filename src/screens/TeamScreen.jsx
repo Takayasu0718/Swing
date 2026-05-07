@@ -582,7 +582,7 @@ export default function TeamScreen() {
                     onClick={() => openProfile(req.fromUid)}
                   >
                     <span className="activity-stamp" aria-hidden>
-                      {getStamp(fromUser?.avatarStamp).label}
+                      <img src={getStamp(fromUser?.avatarStamp).image} alt="" />
                     </span>
                     <div className="search-info">
                       <div className="activity-name">
@@ -658,7 +658,7 @@ export default function TeamScreen() {
                 className="friend-chip"
                 onClick={() => openProfile(m.id)}
               >
-                <span className="activity-stamp" aria-hidden>{getStamp(m.avatarStamp).label}</span>
+                <span className="activity-stamp" aria-hidden><img src={getStamp(m.avatarStamp).image} alt="" /></span>
                 <span className="activity-name">{m.nickname}</span>
                 {m.id === myTeam.captainId && <span className="captain-tag">C</span>}
               </button>
@@ -698,7 +698,7 @@ export default function TeamScreen() {
                   >
                     <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
                     <span className="activity-stamp small" aria-hidden>
-                      {getStamp(r.avatarStamp).label}
+                      <img src={getStamp(r.avatarStamp).image} alt="" />
                     </span>
                     <span className="ranking-name">
                       {r.nickname}
@@ -750,7 +750,7 @@ export default function TeamScreen() {
                     onClick={() => sender && openProfile(sender.id)}
                     aria-label={sender ? `${sender.nickname}のプロフィール` : undefined}
                   >
-                    <span className="activity-stamp small" aria-hidden>{getStamp(sender?.avatarStamp).label}</span>
+                    <span className="activity-stamp small" aria-hidden><img src={getStamp(sender?.avatarStamp).image} alt="" /></span>
                   </button>
                   <div className="chat-body">
                     <div className="chat-head">
@@ -1137,7 +1137,7 @@ function TeamMatchesCard({
                     onClick={() => onOpenProfile?.(mvp.id)}
                   >
                     <span className="mvp-label">MVP</span>
-                    <span className="activity-stamp small" aria-hidden>{getStamp(mvp.avatarStamp).label}</span>
+                    <span className="activity-stamp small" aria-hidden><img src={getStamp(mvp.avatarStamp).image} alt="" /></span>
                     <span className="activity-name small">{mvp.nickname}</span>
                     {m.mvpReason && <span className="mvp-reason">「{m.mvpReason}」</span>}
                   </button>
@@ -1595,7 +1595,7 @@ function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onO
                 className="friend-chip"
                 onClick={() => onOpenProfile?.(m.id)}
               >
-                <span className="activity-stamp" aria-hidden>{getStamp(m.avatarStamp).label}</span>
+                <span className="activity-stamp" aria-hidden><img src={getStamp(m.avatarStamp).image} alt="" /></span>
                 <span className="activity-name">{m.nickname}</span>
                 {m.id === team.captainId && <span className="captain-tag">C</span>}
               </button>
@@ -1622,7 +1622,7 @@ function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onO
               >
                 <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
                 <span className="activity-stamp small" aria-hidden>
-                  {getStamp(r.avatarStamp).label}
+                  <img src={getStamp(r.avatarStamp).image} alt="" />
                 </span>
                 <span className="ranking-name">
                   {r.nickname}
@@ -1654,7 +1654,7 @@ function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onO
                   {mvp && (
                     <div className="mvp-chip">
                       <span className="mvp-label">MVP</span>
-                      <span className="activity-stamp small" aria-hidden>{getStamp(mvp.avatarStamp).label}</span>
+                      <span className="activity-stamp small" aria-hidden><img src={getStamp(mvp.avatarStamp).image} alt="" /></span>
                       <span className="activity-name small">{mvp.nickname}</span>
                       {m.mvpReason && <span className="mvp-reason">「{m.mvpReason}」</span>}
                     </div>

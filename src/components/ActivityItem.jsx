@@ -32,7 +32,7 @@ export default function ActivityItem({ activity, currentUserId, onLike }) {
         onClick={() => openProfile(actor.id)}
         aria-label={`${actor.nickname}のプロフィール`}
       >
-        <span className="activity-stamp" aria-hidden>{stamp.label}</span>
+        <span className="activity-stamp" aria-hidden><img src={stamp.image} alt="" /></span>
       </button>
       <div className="activity-body">
         <div className="activity-head">

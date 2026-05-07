@@ -272,6 +272,17 @@ body {
 .stamp-emoji {
   font-size: 2rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.stamp-emoji img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 /* ================ Role & goal buttons ================ */
@@ -986,6 +997,76 @@ body {
   background: var(--blue-50);
   border: 2px solid var(--blue-100);
   border-radius: 50%;
+  overflow: hidden;
+}
+
+.dragon-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* スタンプ画像表示の共通ルール（emoji span 内に img を入れる方式） */
+.activity-stamp,
+.avatar-big,
+.avatar-xxl,
+.advice-stamp,
+.notif-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.activity-stamp {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  flex-shrink: 0;
+}
+
+.activity-stamp.small {
+  width: 24px;
+  height: 24px;
+}
+
+.activity-stamp img,
+.avatar-big img,
+.avatar-xxl img,
+.advice-stamp img,
+.notif-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-big {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-xxl {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.advice-stamp {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  flex-shrink: 0;
+}
+
+.notif-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  flex-shrink: 0;
 }
 
 .dragon-info {

@@ -178,7 +178,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
               onClick={() => setAvatarStamp(s.id)}
               aria-label={s.name}
             >
-              <span className="stamp-emoji">{s.label}</span>
+              <span className="stamp-emoji"><img src={s.image} alt="" /></span>
             </button>
           ))}
         </div>

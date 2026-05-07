@@ -109,7 +109,7 @@ export default function GuardianScreen({ onNavigate }) {
       <section className="info-card">
         <div className="card-title">登録済みのプロフィール</div>
         <div className="profile-row">
-          <span className="avatar-big" aria-hidden>{getStamp(user.avatarStamp).label}</span>
+          <span className="avatar-big" aria-hidden><img src={getStamp(user.avatarStamp).image} alt="" /></span>
           <div className="profile-info">
             <div className="profile-name">{user.nickname}</div>
             {user.userId && <div className="profile-handle">@{user.userId}</div>}
@@ -213,7 +213,7 @@ export default function GuardianScreen({ onNavigate }) {
                   onClick={() => openDm(partnerUid)}
                 >
                   <span className="activity-stamp" aria-hidden>
-                    {getStamp(partner?.avatarStamp).label}
+                    <img src={getStamp(partner?.avatarStamp).image} alt="" />
                   </span>
                   <div className="dm-row-info">
                     <div className="dm-row-name">

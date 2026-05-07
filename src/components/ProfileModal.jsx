@@ -150,7 +150,7 @@ export default function ProfileModal() {
         <button ref={closeRef} className="modal-close" onClick={closeProfile} aria-label="閉じる">×</button>
 
         <div className="profile-hero">
-          <span className="avatar-xxl" aria-hidden>{stamp.label}</span>
+          <span className="avatar-xxl" aria-hidden><img src={stamp.image} alt="" /></span>
           <div className="profile-hero-info">
             <div className="profile-name">{user.nickname}</div>
             {user.userId && <div className="profile-handle">@{user.userId}</div>}

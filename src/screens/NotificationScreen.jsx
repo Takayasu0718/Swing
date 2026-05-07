@@ -213,7 +213,8 @@ export default function NotificationScreen() {
         <ul className="notif-list">
           {merged.map((n) => {
             const from = lookupFrom(n.fromUserId)
-            const stamp = from ? getStamp(from.avatarStamp).label : (TYPE_ICON[n.type] || '🔔')
+            const stampImg = from ? getStamp(from.avatarStamp).image : null
+            const stampEmoji = from ? '' : (TYPE_ICON[n.type] || '🔔')
             const activity =
               n.source === 'local' && n.activityId ? activities.get(n.activityId) : null
             const liked =
@@ -250,10 +251,12 @@ export default function NotificationScreen() {
                     onClick={(e) => { e.stopPropagation(); openProfile(from.id) }}
                     aria-label={`${from.nickname}のプロフィール`}
                   >
-                    <span className="notif-icon" aria-hidden>{stamp}</span>
+                    <span className="notif-icon" aria-hidden>
+                      {stampImg ? <img src={stampImg} alt="" /> : stampEmoji}
+                    </span>
                   </button>
                 ) : (
-                  <span className="notif-icon" aria-hidden>{stamp}</span>
+                  <span className="notif-icon" aria-hidden>{stampEmoji}</span>
                 )}
                 <div className="notif-body">
                   <div className="notif-content">{n.content}</div>

@@ -106,7 +106,7 @@ export default function FriendsScreen() {
                 className="row-link"
                 onClick={() => openProfile(u.uid)}
               >
-                <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
+                <span className="activity-stamp" aria-hidden><img src={getStamp(u.avatarStamp).image} alt="" /></span>
                 <div className="search-info">
                   <div className="activity-name">
                     {u.nickname}
@@ -152,7 +152,7 @@ export default function FriendsScreen() {
                 className="row-link"
                 onClick={() => openProfile(u.id)}
               >
-                <span className="activity-stamp" aria-hidden>{getStamp(u.avatarStamp).label}</span>
+                <span className="activity-stamp" aria-hidden><img src={getStamp(u.avatarStamp).image} alt="" /></span>
                 <div className="search-info">
                   <div className="activity-name">
                     {u.nickname}
@@ -208,7 +208,7 @@ export default function FriendsScreen() {
                     onClick={() => openProfile(f.fromUid)}
                   >
                     <span className="activity-stamp" aria-hidden>
-                      {getStamp(u?.avatarStamp).label}
+                      <img src={getStamp(u?.avatarStamp).image} alt="" />
                     </span>
                     <div className="search-info">
                       <div className="activity-name">{u?.nickname ?? f.fromUid.slice(0, 6)}</div>
@@ -251,7 +251,7 @@ export default function FriendsScreen() {
                     className="friend-chip"
                     onClick={() => openProfile(f.toUid)}
                   >
-                    <span className="activity-stamp" aria-hidden>{getStamp(u?.avatarStamp).label}</span>
+                    <span className="activity-stamp" aria-hidden><img src={getStamp(u?.avatarStamp).image} alt="" /></span>
                     <span className="activity-name">{u?.nickname ?? f.toUid.slice(0, 6)}</span>
                     <span className="friend-tag">送信済み</span>
                   </button>
@@ -279,7 +279,7 @@ export default function FriendsScreen() {
                   className="friend-chip"
                   onClick={() => openProfile(f.uid)}
                 >
-                  <span className="activity-stamp" aria-hidden>{getStamp(f.avatarStamp).label}</span>
+                  <span className="activity-stamp" aria-hidden><img src={getStamp(f.avatarStamp).image} alt="" /></span>
                   <span className="activity-name">{f.nickname}</span>
                   <span className="real-tag">実</span>
                 </button>
@@ -292,7 +292,7 @@ export default function FriendsScreen() {
                   className="friend-chip"
                   onClick={() => openProfile(f.id)}
                 >
-                  <span className="activity-stamp" aria-hidden>{getStamp(f.avatarStamp).label}</span>
+                  <span className="activity-stamp" aria-hidden><img src={getStamp(f.avatarStamp).image} alt="" /></span>
                   <span className="activity-name">{f.nickname}</span>
                 </button>
               </li>
