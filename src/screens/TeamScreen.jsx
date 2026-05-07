@@ -93,6 +93,8 @@ export default function TeamScreen() {
   // 処理済み・処理中のチーム宛申請 ID（承認/拒否ボタンの二重押下防止）
   const [processedIncomingIds, setProcessedIncomingIds] = useState(() => new Set())
   const [actingIncomingIds, setActingIncomingIds] = useState(() => new Set())
+  // チームメイトのアクティビティ表示件数（基本 15、もっと見るで 30）
+  const [teamFeedLimit, setTeamFeedLimit] = useState(15)
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
@@ -375,6 +377,10 @@ export default function TeamScreen() {
   const teamActivities = [...fsTeamActivities, ...localTeamActivities].sort((a, b) =>
     a.createdAt < b.createdAt ? 1 : -1,
   )
+  // 表示は teamFeedLimit 件まで（最大 30）。データ自体は保持。
+  const visibleTeamActivities = teamActivities.slice(0, teamFeedLimit)
+  const canLoadMoreTeamActivities =
+    teamFeedLimit < 30 && teamActivities.length > teamFeedLimit
   // FS team では Firestore のチャットを使用、それ以外は localStorage（mock 互換）
   const teamChat = isFsTeam ? fsTeamChats : chats.listByTeam(myTeam.id)
 
@@ -722,11 +728,23 @@ export default function TeamScreen() {
         {teamActivities.length === 0 ? (
           <div className="empty-txt">まだアクティビティがありません</div>
         ) : (
-          <div className="activity-list">
-            {teamActivities.map((a) => (
-              <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLikeActivity} />
-            ))}
-          </div>
+          <>
+            <div className="activity-list">
+              {visibleTeamActivities.map((a) => (
+                <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLikeActivity} />
+              ))}
+            </div>
+            {canLoadMoreTeamActivities && (
+              <button
+                type="button"
+                className="outline-btn"
+                style={{ marginTop: '0.6rem' }}
+                onClick={() => setTeamFeedLimit((n) => Math.min(n + 15, 30))}
+              >
+                もっと見る
+              </button>
+            )}
+          </>
         )}
       </section>
 
