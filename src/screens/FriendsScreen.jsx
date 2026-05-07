@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { users, friendships, teams, activities } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { sendFriendRequest } from '../lib/events.js'
@@ -14,16 +14,38 @@ import EmptyState from '../components/EmptyState.jsx'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
-import { useFirestoreActivities } from '../hooks/useFirestoreActivities.jsx'
-import { toggleFsActivityLike } from '../lib/firestoreActivities.js'
+import { toggleFsActivityLike, subscribeRecentActivitiesByUids } from '../lib/firestoreActivities.js'
+
+const FEED_INITIAL = 15
+const FEED_STEP = 15
+const FEED_MAX = 30
 
 export default function FriendsScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
   const { myUid, friendships: fsFriendships, usersByUid, allUsers } = useFirestoreFriends()
   const { allFsTeams } = useFirestoreTeams()
-  const { activities: allFsActivities } = useFirestoreActivities()
   const [query, setQuery] = useState('')
+  const [feedLimit, setFeedLimit] = useState(FEED_INITIAL)
+  const [feedFsItems, setFeedFsItems] = useState([])
+
+  // フレンドフィード購読: orderBy + limit でサーバー側絞り込み。
+  // 古いアクティビティは Firestore から読み込まない（読み取りコスト削減）。
+  const acceptedFsFriendships = fsFriendships.filter((f) => f.status === 'accepted')
+  const feedFriendUids = acceptedFsFriendships
+    .map((f) => f.participants?.find((p) => p !== myUid))
+    .filter(Boolean)
+  const feedWatchedKey = useMemo(() => [...feedFriendUids].sort().join(','), [feedFriendUids])
+
+  useEffect(() => {
+    if (!myUid) return
+    // 空 uids 時はヘルパー側で callback([]) が同期発火する（state を空にリセット）。
+    const unsub = subscribeRecentActivitiesByUids(feedFriendUids, feedLimit, setFeedFsItems)
+    return () => unsub()
+    // feedFriendUids の変化は feedWatchedKey で代理する（配列参照の不安定性を回避）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedWatchedKey, feedLimit, myUid])
+
   if (!me) return null
 
   // ----- Mock (localStorage) state -----
@@ -75,15 +97,12 @@ export default function FriendsScreen() {
     : []
 
   const localFeed = activities.listByUsers(friendIds).map((a) => ({ ...a, source: 'local' }))
-  const fsAcceptedFriendUids = fsAccepted
-    .map((f) => f.participants?.find((p) => p !== myUid))
-    .filter(Boolean)
-  const fsFriendActivities = (allFsActivities || []).filter((a) =>
-    fsAcceptedFriendUids.includes(a.userId),
-  )
-  const feed = [...fsFriendActivities, ...localFeed].sort((a, b) =>
-    a.createdAt < b.createdAt ? 1 : -1,
-  )
+  // FS 側は subscribeRecentActivitiesByUids で feedLimit 件まで絞った feedFsItems を使用
+  const feed = [...feedFsItems, ...localFeed]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    // ローカルが多い場合に備えて最終的にも feedLimit でキャップ
+    .slice(0, feedLimit)
+  const canLoadMore = feedLimit < FEED_MAX && feed.length >= feedLimit
   const handleLike = (a) => {
     if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
     else activities.toggleLike(a.id, me.id)
@@ -310,11 +329,23 @@ export default function FriendsScreen() {
             description="フレンドが素振りを達成するとここに表示されます"
           />
         ) : (
-          <div className="activity-list">
-            {feed.map((a) => (
-              <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLike} />
-            ))}
-          </div>
+          <>
+            <div className="activity-list">
+              {feed.map((a) => (
+                <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLike} />
+              ))}
+            </div>
+            {canLoadMore && (
+              <button
+                type="button"
+                className="outline-btn"
+                style={{ marginTop: '0.6rem' }}
+                onClick={() => setFeedLimit((n) => Math.min(n + FEED_STEP, FEED_MAX))}
+              >
+                もっと見る
+              </button>
+            )}
+          </>
         )}
       </section>
     </div>

@@ -8,6 +8,8 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
+  limit,
   onSnapshot,
   serverTimestamp,
   arrayUnion,
@@ -82,6 +84,28 @@ export function subscribeActivitiesByUids(uids, callback) {
       callback(items)
     },
     (err) => console.error('[firestoreActivities] uids listener failed', err),
+  )
+}
+
+// 友達フィード用: orderBy + limit でサーバー側絞り込み。
+// 古いアクティビティは読み込まないので Firestore 読み取りコストを抑えられる。
+// 注意: 初回クエリ時に Firestore 複合 index (userId asc, createdAt desc) の
+// 作成が必要（コンソールにエラー経由で表示されるリンクから作成）。
+export function subscribeRecentActivitiesByUids(uids, limitCount, callback) {
+  if (!db || !Array.isArray(uids) || uids.length === 0 || !limitCount) {
+    callback([])
+    return () => {}
+  }
+  const q = query(
+    collection(db, 'activities'),
+    where('userId', 'in', uids.slice(0, 30)),
+    orderBy('createdAt', 'desc'),
+    limit(limitCount),
+  )
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map(shape)),
+    (err) => console.error('[firestoreActivities] recent uids listener failed', err),
   )
 }
 
