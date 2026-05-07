@@ -71,6 +71,8 @@ service cloud.firestore {
                     && request.auth.uid == resource.data.captainId;
 
       // チームチャット: メンバーのみ read/write 可能。
+      // delete は古いチャットの自動削除（クライアント側 prune）を許容するため
+      // チームメンバー全員に許可（自分の発言以外も削除可能）。
       match /messages/{messageId} {
         allow read: if request.auth != null
                     && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
@@ -80,7 +82,7 @@ service cloud.firestore {
         allow update: if request.auth != null
                       && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
         allow delete: if request.auth != null
-                      && request.auth.uid == resource.data.userId;
+                      && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
       }
     }
 

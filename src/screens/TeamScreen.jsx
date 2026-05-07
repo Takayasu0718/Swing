@@ -33,13 +33,22 @@ import {
   acceptFsTeamRequest,
   declineFsTeamRequest,
 } from '../lib/firestoreTeamRequests.js'
-import { postFsChat, toggleFsChatLike } from '../lib/firestoreChats.js'
+import {
+  postFsChat,
+  toggleFsChatLike,
+  fetchRecentChats,
+  pruneOldChats,
+} from '../lib/firestoreChats.js'
 import {
   subscribeTrialRequest,
   setTrialRequest,
   deleteTrialRequest,
 } from '../lib/firestoreTrialRequests.js'
 import { loadFriendRanking } from '../lib/firestoreRanking.js'
+
+const CHAT_INITIAL = 5
+const CHAT_STEP = 10
+const CHAT_MAX = 15
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -73,7 +82,6 @@ export default function TeamScreen() {
     allFsTeams,
     incomingRequests,
     outgoingRequests,
-    teamChats: fsTeamChats,
     refreshAllTeams,
   } = useFirestoreTeams()
   const { allUsers } = useFirestoreFriends()
@@ -95,11 +103,42 @@ export default function TeamScreen() {
   const [actingIncomingIds, setActingIncomingIds] = useState(() => new Set())
   // チームメイトのアクティビティ表示件数（基本 15、もっと見るで 30）
   const [teamFeedLimit, setTeamFeedLimit] = useState(15)
+  // チームチャット: 直近 N 件のみ getDocs + startAfter で取得（onSnapshot 不使用）
+  const [chatItems, setChatItems] = useState([])
+  const [chatLastDoc, setChatLastDoc] = useState(null)
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatReachedEnd, setChatReachedEnd] = useState(false)
 
   // 体験会・助っ人参加のお願いを購読（FS チームのみ）
   useEffect(() => {
     if (!myFsTeam?.id) return
     return subscribeTrialRequest(myFsTeam.id, setTrialRequestState)
+  }, [myFsTeam?.id])
+
+  // FS チームチャット初回取得（直近 5 件）+ 古いチャット削除
+  useEffect(() => {
+    const teamId = myFsTeam?.id
+    if (!teamId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChatItems([])
+      setChatLastDoc(null)
+      setChatReachedEnd(true)
+      return
+    }
+    let cancelled = false
+    setChatLoading(true)
+    fetchRecentChats(teamId, CHAT_INITIAL).then(({ items, lastDoc }) => {
+      if (cancelled) return
+      setChatItems(items)
+      setChatLastDoc(lastDoc)
+      setChatReachedEnd(items.length < CHAT_INITIAL)
+      setChatLoading(false)
+    })
+    // 15 件より古いチャットは削除（best-effort、結果を待たない）
+    pruneOldChats(teamId, CHAT_MAX).catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [myFsTeam?.id])
 
   // FS チームのランキング: users/{uid}/activities から直近7日の swing 数を集計
@@ -381,24 +420,74 @@ export default function TeamScreen() {
   const visibleTeamActivities = teamActivities.slice(0, teamFeedLimit)
   const canLoadMoreTeamActivities =
     teamFeedLimit < 30 && teamActivities.length > teamFeedLimit
-  // FS team では Firestore のチャットを使用、それ以外は localStorage（mock 互換）
-  const teamChat = isFsTeam ? fsTeamChats : chats.listByTeam(myTeam.id)
+  // FS team では chatItems（getDocs ベース）を使用、それ以外は localStorage。
+  // 取得は降順なので、表示は古→新に並べ直す（チャット風）
+  const teamChat = isFsTeam ? [...chatItems].reverse() : chats.listByTeam(myTeam.id)
+  const canLoadMoreChat =
+    isFsTeam && !chatLoading && !chatReachedEnd && chatItems.length < CHAT_MAX
+
+  const handleLoadMoreChat = async () => {
+    if (!isFsTeam || chatLoading || chatReachedEnd) return
+    if (chatItems.length >= CHAT_MAX) return
+    const remaining = CHAT_MAX - chatItems.length
+    const fetchSize = Math.min(CHAT_STEP, remaining)
+    setChatLoading(true)
+    const { items, lastDoc } = await fetchRecentChats(myTeam.id, fetchSize, chatLastDoc)
+    setChatItems((prev) => [...prev, ...items])
+    if (lastDoc) setChatLastDoc(lastDoc)
+    if (items.length < fetchSize) setChatReachedEnd(true)
+    setChatLoading(false)
+  }
 
   const handleLikeActivity = (a) => {
     if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
     else activities.toggleLike(a.id, me.id)
   }
   const handleLikeChat = (id) => {
-    if (isFsTeam) toggleFsChatLike(myTeam.id, id, myUid)
-    else chats.toggleLike(id, me.id)
+    if (isFsTeam) {
+      toggleFsChatLike(myTeam.id, id, myUid)
+      // 楽観的更新（onSnapshot 不使用のため）
+      setChatItems((prev) =>
+        prev.map((c) => {
+          if (c.id !== id) return c
+          const liked = (c.likeUserIds || []).includes(myUid)
+          return {
+            ...c,
+            likeUserIds: liked
+              ? c.likeUserIds.filter((u) => u !== myUid)
+              : [...(c.likeUserIds || []), myUid],
+          }
+        }),
+      )
+    } else {
+      chats.toggleLike(id, me.id)
+    }
   }
 
-  const submitChat = () => {
+  const submitChat = async () => {
     const content = chatInput.trim()
     if (!content) return
-    if (isFsTeam) postFsChat(myTeam.id, content)
-    else chats.post({ teamId: myTeam.id, userId: me.id, content })
     setChatInput('')
+    if (isFsTeam) {
+      // 楽観的に先頭（最新）へ挿入。一時 ID は post 成功後に実 ID へ差し替え
+      // eslint-disable-next-line react-hooks/purity
+      const tempId = `temp-${Date.now()}`
+      const tempMsg = {
+        id: tempId,
+        teamId: myTeam.id,
+        userId: myUid,
+        content,
+        likeUserIds: [],
+        createdAt: new Date().toISOString(),
+      }
+      setChatItems((prev) => [tempMsg, ...prev])
+      const realId = await postFsChat(myTeam.id, content)
+      if (realId) {
+        setChatItems((prev) => prev.map((m) => (m.id === tempId ? { ...m, id: realId } : m)))
+      }
+    } else {
+      chats.post({ teamId: myTeam.id, userId: me.id, content })
+    }
   }
 
   const handleLeaveTeam = () => {
@@ -750,6 +839,17 @@ export default function TeamScreen() {
 
       <section className="info-card">
         <div className="card-title">チームチャット</div>
+        {canLoadMoreChat && (
+          <button
+            type="button"
+            className="outline-btn"
+            style={{ marginBottom: '0.6rem' }}
+            onClick={handleLoadMoreChat}
+            disabled={chatLoading}
+          >
+            {chatLoading ? '読み込み中…' : 'もっと見る'}
+          </button>
+        )}
         {teamChat.length === 0 ? (
           <div className="empty-txt">まだメッセージがありません</div>
         ) : (
