@@ -7,6 +7,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   onSnapshot,
@@ -99,6 +100,16 @@ export async function markProcessedFsNotification(notifId) {
     await updateDoc(doc(db, 'notifications', notifId), { processed: true })
   } catch (e) {
     console.error('[firestoreNotifications] markProcessed failed', e)
+  }
+}
+
+export async function deleteFsNotification(notifId) {
+  if (!db || !notifId) return
+  await authReady
+  try {
+    await deleteDoc(doc(db, 'notifications', notifId))
+  } catch (e) {
+    console.error('[firestoreNotifications] delete failed', e)
   }
 }
 

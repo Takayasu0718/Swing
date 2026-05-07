@@ -559,6 +559,13 @@ export const notifications = {
     saveNotifications(arr)
     bump()
   },
+  delete(id) {
+    const arr = loadNotifications()
+    const next = arr.filter((n) => n.id !== id)
+    if (next.length === arr.length) return
+    saveNotifications(next)
+    bump()
+  },
   toggleLike(id, userId) {
     const arr = loadNotifications()
     const idx = arr.findIndex((n) => n.id === id)

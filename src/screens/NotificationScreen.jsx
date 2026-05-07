@@ -1,4 +1,4 @@
-import { users, notifications, friendships, activities, teamRequests } from '../storage/storage.js'
+import { users, notifications, friendships, activities, teamRequests, useStoreVersion } from '../storage/storage.js'
 import { getStamp } from '../storage/stamps.js'
 import { relativeTime } from '../lib/time.js'
 import {
@@ -14,6 +14,7 @@ import {
   markAllReadFsNotifications,
   markProcessedFsNotification,
   toggleLikeFsNotification,
+  deleteFsNotification,
 } from '../lib/firestoreNotifications.js'
 import {
   acceptFsTeamRequest,
@@ -23,7 +24,7 @@ import {
   acceptFriendRequestFs,
   declineFriendRequestFs,
 } from '../lib/firestoreFriends.js'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreNotifications } from '../hooks/useFirestoreNotifications.jsx'
@@ -43,6 +44,8 @@ const TYPE_ICON = {
   goal_reminder: '⏰',
   trial_request: '📋',
 }
+
+const KEEP_LIMIT = 10
 
 const ACTIONABLE_TYPES = new Set(['friend_request', 'team_join_request', 'friend_team_request'])
 // いいねボタンを出さない通知タイプ（自分宛 like、自分宛アクション要求、リマインダー等）
@@ -88,6 +91,37 @@ export default function NotificationScreen() {
   const [processedNotifIds, setProcessedNotifIds] = useState(() => new Set())
   // 処理中（API 完了待ち）の通知 ID — ボタンを disabled にする用
   const [pendingNotifIds, setPendingNotifIds] = useState(() => new Set())
+  // ローカルストレージの変更を購読し、削除後に再レンダリングを誘発する
+  const storeVersion = useStoreVersion()
+
+  // localStorage の通知（source 識別用に local を付与）
+  const localItems = me
+    ? notifications.listByUser(me.id).map((n) => ({ ...n, source: 'local' }))
+    : []
+  // FS items are already shaped with source: 'fs' by the subscriber.
+  const merged = [...fsItems, ...localItems]
+  merged.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  const unread = merged.filter((n) => !n.read).length
+  // 表示は直近 KEEP_LIMIT 件のみ
+  const visible = merged.slice(0, KEEP_LIMIT)
+
+  // 直近 KEEP_LIMIT 件以外は FS / local 双方から削除する。
+  // 依存配列: fsItems（FS 購読の差分）と storeVersion（ローカル更新の差分）。
+  // 削除後は購読・bump で再レンダリングされ、merged.length <= KEEP_LIMIT
+  // になるまで自然収束する。
+  useEffect(() => {
+    if (!me || !myUid) return
+    if (merged.length <= KEEP_LIMIT) return
+    const keepKeys = new Set(visible.map((n) => `${n.source}-${n.id}`))
+    for (const n of fsItems) {
+      if (!keepKeys.has(`fs-${n.id}`)) deleteFsNotification(n.id)
+    }
+    for (const n of localItems) {
+      if (!keepKeys.has(`local-${n.id}`)) notifications.delete(n.id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fsItems, storeVersion, myUid, me?.id])
+
   if (!me) return null
 
   const markProcessed = (id) => {
@@ -101,15 +135,6 @@ export default function NotificationScreen() {
       return next
     })
   }
-
-  // localStorage の通知（source 識別用に local を付与）
-  const localItems = notifications
-    .listByUser(me.id)
-    .map((n) => ({ ...n, source: 'local' }))
-  // FS items are already shaped with source: 'fs' by the subscriber.
-  const merged = [...fsItems, ...localItems]
-  merged.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-  const unread = merged.filter((n) => !n.read).length
 
   const lookupFrom = (fromUserId) => {
     if (!fromUserId) return null
@@ -199,13 +224,13 @@ export default function NotificationScreen() {
         {unread > 0 && <span className="unread-pill">{unread}</span>}
       </h1>
 
-      {merged.length > 0 && unread > 0 && (
+      {visible.length > 0 && unread > 0 && (
         <button className="outline-btn mark-all" onClick={markAllRead}>
           すべて既読にする
         </button>
       )}
 
-      {merged.length === 0 ? (
+      {visible.length === 0 ? (
         <section className="info-card">
           <EmptyState
             icon="🔔"
@@ -215,7 +240,7 @@ export default function NotificationScreen() {
         </section>
       ) : (
         <ul className="notif-list">
-          {merged.map((n) => {
+          {visible.map((n) => {
             const from = lookupFrom(n.fromUserId)
             const stampImg = from ? getStamp(from.avatarStamp).image : null
             const stampEmoji = from ? '' : (TYPE_ICON[n.type] || '🔔')
