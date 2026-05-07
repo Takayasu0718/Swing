@@ -27,7 +27,9 @@
       "Read(//private/tmp/imgsplit/**)",
       "Bash(npm init *)",
       "Bash(node -e ' *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(sips -s format png \"ChatGPT Image 2026年5月7日 11_48_31.webp\" --out \"/tmp/boy_focus_raw.png\")",
+      "Bash(sips -s format png \"ChatGPT Image 2026年5月7日 11_47_33.webp\" --out \"/tmp/girl_focus_raw.png\")"
     ]
   }
 }
