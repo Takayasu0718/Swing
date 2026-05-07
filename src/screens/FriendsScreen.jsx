@@ -14,7 +14,7 @@ import EmptyState from '../components/EmptyState.jsx'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
-import { toggleFsActivityLike, subscribeRecentActivitiesByUids } from '../lib/firestoreActivities.js'
+import { toggleFsActivityLike, fetchRecentActivitiesByUids } from '../lib/firestoreActivities.js'
 
 const FEED_INITIAL = 15
 const FEED_STEP = 15
@@ -26,25 +26,46 @@ export default function FriendsScreen() {
   const { myUid, friendships: fsFriendships, usersByUid, allUsers } = useFirestoreFriends()
   const { allFsTeams } = useFirestoreTeams()
   const [query, setQuery] = useState('')
-  const [feedLimit, setFeedLimit] = useState(FEED_INITIAL)
+  // フレンドフィード state（onSnapshot は使わず getDocs + startAfter で取得）。
   const [feedFsItems, setFeedFsItems] = useState([])
+  const [feedLastDoc, setFeedLastDoc] = useState(null)
+  const [feedLoading, setFeedLoading] = useState(false)
+  const [feedReachedEnd, setFeedReachedEnd] = useState(false)
 
-  // フレンドフィード購読: orderBy + limit でサーバー側絞り込み。
-  // 古いアクティビティは Firestore から読み込まない（読み取りコスト削減）。
+  // 受理済みフレンドの uid 一覧。配列参照が render ごとに新規になるので、
+  // 安定キー（feedWatchedKey）で副作用の依存に使う。
   const acceptedFsFriendships = fsFriendships.filter((f) => f.status === 'accepted')
   const feedFriendUids = acceptedFsFriendships
     .map((f) => f.participants?.find((p) => p !== myUid))
     .filter(Boolean)
   const feedWatchedKey = useMemo(() => [...feedFriendUids].sort().join(','), [feedFriendUids])
 
+  // フレンドが変わった / 画面マウント時のみ初回 15 件を 1 回だけ取得。
+  // onSnapshot は使わないので、いいね等のリアルタイム反映は楽観的更新で対応。
   useEffect(() => {
     if (!myUid) return
-    // 空 uids 時はヘルパー側で callback([]) が同期発火する（state を空にリセット）。
-    const unsub = subscribeRecentActivitiesByUids(feedFriendUids, feedLimit, setFeedFsItems)
-    return () => unsub()
-    // feedFriendUids の変化は feedWatchedKey で代理する（配列参照の不安定性を回避）
+    if (feedFriendUids.length === 0) {
+      // フレンドが居ない場合は state を空に戻す（意図的な同期 setState）
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFeedFsItems([])
+      setFeedLastDoc(null)
+      setFeedReachedEnd(true)
+      return
+    }
+    let cancelled = false
+    setFeedLoading(true)
+    fetchRecentActivitiesByUids(feedFriendUids, FEED_INITIAL).then(({ items, lastDoc }) => {
+      if (cancelled) return
+      setFeedFsItems(items)
+      setFeedLastDoc(lastDoc)
+      setFeedReachedEnd(items.length < FEED_INITIAL)
+      setFeedLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedWatchedKey, feedLimit, myUid])
+  }, [feedWatchedKey, myUid])
 
   if (!me) return null
 
@@ -97,15 +118,51 @@ export default function FriendsScreen() {
     : []
 
   const localFeed = activities.listByUsers(friendIds).map((a) => ({ ...a, source: 'local' }))
-  // FS 側は subscribeRecentActivitiesByUids で feedLimit 件まで絞った feedFsItems を使用
+  // FS 側は fetchRecentActivitiesByUids で取得した feedFsItems（最大 30 件）を使用。
+  // 表示はマージしてソート後、最大 FEED_MAX 件で安全側にキャップ。
   const feed = [...feedFsItems, ...localFeed]
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-    // ローカルが多い場合に備えて最終的にも feedLimit でキャップ
-    .slice(0, feedLimit)
-  const canLoadMore = feedLimit < FEED_MAX && feed.length >= feedLimit
+    .slice(0, FEED_MAX)
+  // 「もっと見る」表示条件: 30 件未満 / 末尾未到達 / ロード中でない
+  const canLoadMore =
+    !feedLoading && !feedReachedEnd && feedFsItems.length < FEED_MAX
+
+  const handleLoadMore = async () => {
+    if (feedLoading || feedReachedEnd) return
+    if (feedFsItems.length >= FEED_MAX) return
+    const remaining = FEED_MAX - feedFsItems.length
+    const fetchSize = Math.min(FEED_STEP, remaining)
+    setFeedLoading(true)
+    const { items, lastDoc } = await fetchRecentActivitiesByUids(
+      feedFriendUids,
+      fetchSize,
+      feedLastDoc,
+    )
+    setFeedFsItems((prev) => [...prev, ...items])
+    if (lastDoc) setFeedLastDoc(lastDoc)
+    if (items.length < fetchSize) setFeedReachedEnd(true)
+    setFeedLoading(false)
+  }
+
   const handleLike = (a) => {
-    if (a.source === 'fs') toggleFsActivityLike(a.id, myUid)
-    else activities.toggleLike(a.id, me.id)
+    if (a.source === 'fs') {
+      toggleFsActivityLike(a.id, myUid)
+      // onSnapshot 不使用のため、いいね状態を楽観的にローカル state へ反映する。
+      setFeedFsItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== a.id) return item
+          const liked = (item.likeUserIds || []).includes(myUid)
+          return {
+            ...item,
+            likeUserIds: liked
+              ? item.likeUserIds.filter((uid) => uid !== myUid)
+              : [...(item.likeUserIds || []), myUid],
+          }
+        }),
+      )
+    } else {
+      activities.toggleLike(a.id, me.id)
+    }
   }
 
   const dropdown = q && (
@@ -340,9 +397,10 @@ export default function FriendsScreen() {
                 type="button"
                 className="outline-btn"
                 style={{ marginTop: '0.6rem' }}
-                onClick={() => setFeedLimit((n) => Math.min(n + FEED_STEP, FEED_MAX))}
+                onClick={handleLoadMore}
+                disabled={feedLoading}
               >
-                もっと見る
+                {feedLoading ? '読み込み中…' : 'もっと見る'}
               </button>
             )}
           </>

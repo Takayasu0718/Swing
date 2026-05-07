@@ -10,11 +10,13 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   onSnapshot,
   serverTimestamp,
   arrayUnion,
   arrayRemove,
   getDoc,
+  getDocs,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
 import { createFsNotification } from './firestoreNotifications.js'
@@ -87,26 +89,33 @@ export function subscribeActivitiesByUids(uids, callback) {
   )
 }
 
-// 友達フィード用: orderBy + limit でサーバー側絞り込み。
-// 古いアクティビティは読み込まないので Firestore 読み取りコストを抑えられる。
+// 友達フィード用: orderBy(createdAt desc) + limit + startAfter でページネーション。
+// onSnapshot を使わず getDocs で 1 回だけ取得することで、フレンドが多い・
+// アクティビティが大量にある状態でも読み取りコストを上限内に抑える。
+// 戻り値の lastDoc を次回呼び出し時に渡すと、続きを取得できる。
 // 注意: 初回クエリ時に Firestore 複合 index (userId asc, createdAt desc) の
 // 作成が必要（コンソールにエラー経由で表示されるリンクから作成）。
-export function subscribeRecentActivitiesByUids(uids, limitCount, callback) {
+export async function fetchRecentActivitiesByUids(uids, limitCount, startAfterDoc = null) {
   if (!db || !Array.isArray(uids) || uids.length === 0 || !limitCount) {
-    callback([])
-    return () => {}
+    return { items: [], lastDoc: null }
   }
-  const q = query(
-    collection(db, 'activities'),
-    where('userId', 'in', uids.slice(0, 30)),
-    orderBy('createdAt', 'desc'),
-    limit(limitCount),
-  )
-  return onSnapshot(
-    q,
-    (snap) => callback(snap.docs.map(shape)),
-    (err) => console.error('[firestoreActivities] recent uids listener failed', err),
-  )
+  await authReady
+  try {
+    const constraints = [
+      where('userId', 'in', uids.slice(0, 30)),
+      orderBy('createdAt', 'desc'),
+    ]
+    if (startAfterDoc) constraints.push(startAfter(startAfterDoc))
+    constraints.push(limit(limitCount))
+    const q = query(collection(db, 'activities'), ...constraints)
+    const snap = await getDocs(q)
+    const items = snap.docs.map(shape)
+    const lastDoc = snap.docs[snap.docs.length - 1] || null
+    return { items, lastDoc }
+  } catch (e) {
+    console.error('[firestoreActivities] fetchRecent failed', e)
+    return { items: [], lastDoc: null }
+  }
 }
 
 export function subscribeActivitiesByTeam(teamId, callback) {
