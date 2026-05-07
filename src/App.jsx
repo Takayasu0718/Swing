@@ -19,7 +19,6 @@ import ProfileModal from './components/ProfileModal.jsx'
 import DmOverlay from './components/DmOverlay.jsx'
 import { ProfileProvider } from './hooks/useProfile.jsx'
 import { DmProvider, useDm } from './hooks/useDm.jsx'
-import { ThemeProvider } from './hooks/useTheme.jsx'
 import { FirestoreFriendsProvider } from './hooks/useFirestoreFriends.jsx'
 import { FirestoreTeamsProvider } from './hooks/useFirestoreTeams.jsx'
 import {
@@ -185,20 +184,18 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <FirestoreFriendsProvider>
-        <FirestoreTeamsProvider>
-          <FirestoreActivitiesProvider>
-            <FirestoreNotificationsProvider>
-              <ProfileProvider>
-                <DmProvider>
-                  <AppShell />
-                </DmProvider>
-              </ProfileProvider>
-            </FirestoreNotificationsProvider>
-          </FirestoreActivitiesProvider>
-        </FirestoreTeamsProvider>
-      </FirestoreFriendsProvider>
-    </ThemeProvider>
+    <FirestoreFriendsProvider>
+      <FirestoreTeamsProvider>
+        <FirestoreActivitiesProvider>
+          <FirestoreNotificationsProvider>
+            <ProfileProvider>
+              <DmProvider>
+                <AppShell />
+              </DmProvider>
+            </ProfileProvider>
+          </FirestoreNotificationsProvider>
+        </FirestoreActivitiesProvider>
+      </FirestoreTeamsProvider>
+    </FirestoreFriendsProvider>
   )
 }

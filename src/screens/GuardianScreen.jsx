@@ -5,7 +5,6 @@ import { getStamp } from '../storage/stamps.js'
 import { computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
 import { levelFromProgress } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
-import { useTheme } from '../hooks/useTheme.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useDm } from '../hooks/useDm.jsx'
@@ -19,7 +18,6 @@ import { removeFsTeamMember } from '../lib/firestoreTeams.js'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
-  const { mode: themeMode, setMode: setThemeMode } = useTheme()
   const { myUid, myFsTeam } = useFirestoreTeams()
   const { allUsers } = useFirestoreFriends()
   const { openDm } = useDm()
@@ -275,29 +273,6 @@ export default function GuardianScreen({ onNavigate }) {
               </button>
             )
           })}
-        </div>
-      </section>
-
-      <section className="info-card">
-        <div className="card-title">テーマ</div>
-        <div className="theme-options" role="radiogroup" aria-label="テーマ">
-          {[
-            { k: 'light', label: 'ライト', icon: '☀️' },
-            { k: 'dark', label: 'ダーク', icon: '🌙' },
-            { k: 'system', label: 'システム', icon: '🖥️' },
-          ].map((opt) => (
-            <button
-              key={opt.k}
-              type="button"
-              role="radio"
-              aria-checked={themeMode === opt.k}
-              className={`theme-option ${themeMode === opt.k ? 'active' : ''}`}
-              onClick={() => setThemeMode(opt.k)}
-            >
-              <span className="theme-option-icon" aria-hidden>{opt.icon}</span>
-              <span>{opt.label}</span>
-            </button>
-          ))}
         </div>
       </section>
 
