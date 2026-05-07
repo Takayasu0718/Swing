@@ -1,25 +1,27 @@
 :root {
   color-scheme: light;
-  --blue-50: #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
-  --blue-900: #1e3a8a;
-  --slate-100: #f1f5f9;
-  --slate-300: #cbd5e1;
-  --slate-500: #64748b;
-  --slate-700: #334155;
-  --slate-900: #0f172a;
+  /* 群青寄りの落ち着いた青（少年野球ノートのインク色） */
+  --blue-50: #eef1fa;
+  --blue-100: #d9def0;
+  --blue-200: #b3bde0;
+  --blue-300: #8694c4;
+  --blue-400: #5d6dac;
+  --blue-500: #3658c9;
+  --blue-600: #2f4fb5;
+  --blue-700: #283f96;
+  --blue-800: #213679;
+  --blue-900: #1a2a5e;
+  --slate-100: #efece4;
+  --slate-300: #c8c4ba;
+  --slate-500: #6b6960;
+  --slate-700: #3f3d36;
+  --slate-900: #1f1d18;
   --white: #ffffff;
-  --surface: #ffffff;
-  --bg: #f4f8ff;
-  --shadow-sm: 0 1px 3px rgba(30, 58, 138, 0.08);
-  --shadow: 0 4px 14px rgba(30, 58, 138, 0.10);
+  /* クリーム寄りの紙のような白（やや透過させて背景に馴染ませる） */
+  --surface: rgba(255, 252, 245, 0.92);
+  --bg: #f5efe2;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] {
@@ -104,6 +106,50 @@ body {
   flex-direction: column;
   background: var(--bg);
   position: relative;
+}
+
+/* ================ 共通背景 (登録/設定画面以外) ================ */
+/* viewport 全体に cover 表示。iPhone/iPad/PC で黒帯なし。
+   body::before = 背景画像 / body::after = 黒オーバーレイ。
+   z-index は固定レイヤーを最背面に置き、本体は通常フローのまま重ねる */
+body.has-baseball-bg {
+  background: transparent;
+}
+
+body.has-baseball-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('/images/baseball-bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
+  pointer-events: none;
+}
+
+body.has-baseball-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 背景を見せるため app-root とスクリーンコンテナを透明化（タブバーやカードの背景は維持） */
+body.has-baseball-bg .app-root {
+  background: transparent;
+}
+
+body.has-baseball-bg .screen-container {
+  background: transparent;
+}
+
+/* 背景上に直接乗る画面タイトルは白＋シャドウで視認性を確保 */
+body.has-baseball-bg .screen-title {
+  color: var(--white);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .screen-container {
@@ -977,7 +1023,9 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   border: 1.5px solid var(--blue-100);
 }
 
@@ -1111,7 +1159,9 @@ body {
   border-radius: 16px;
   padding: 1rem;
   border: 1.5px solid var(--blue-100);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   position: relative;
 }
 
@@ -1348,7 +1398,9 @@ body {
   border-radius: 16px;
   padding: 1rem;
   border: 1.5px solid var(--blue-100);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .card-title {
@@ -2199,6 +2251,9 @@ body {
   padding: 0.8rem 0.9rem;
   cursor: pointer;
   transition: background 0.15s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .notif-row.unread {
@@ -2262,7 +2317,9 @@ body {
   background: var(--surface);
   border-radius: 18px;
   padding: 1.25rem 1.1rem 1.5rem;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -2426,7 +2483,9 @@ button.friend-chip:hover {
   background: var(--surface);
   border-top: 1px solid var(--blue-100);
   padding: 0.4rem 0.2rem calc(0.4rem + env(safe-area-inset-bottom, 0));
-  box-shadow: 0 -2px 8px rgba(30, 58, 138, 0.06);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .tab {

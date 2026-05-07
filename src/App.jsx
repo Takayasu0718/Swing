@@ -72,6 +72,13 @@ function AppShell() {
     return !myLastReadAt || myLastReadAt < c.lastMessageAt
   }).length
 
+  // 登録/設定 以外の画面では共通の野球背景を <body> に付与する
+  useEffect(() => {
+    const useBg = activeTab !== 'register' && activeTab !== 'guardian'
+    document.body.classList.toggle('has-baseball-bg', useBg)
+    return () => document.body.classList.remove('has-baseball-bg')
+  }, [activeTab])
+
   // バッティングステータスの未達成ペナルティを適用（起動時に1回）
   useEffect(() => {
     if (current?.id) applyMissPenaltyIfNeeded(current.id)
