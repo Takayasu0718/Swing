@@ -111,6 +111,28 @@ export async function addFsTeamMember(teamId, uid) {
   }
 }
 
+// 双方のチームの friendTeamIds から相手 ID を arrayRemove して
+// フレンドチーム関係を解消する。Firestore ルールは「friendTeamIds と
+// updatedAt のみの diff」を認証ユーザーに許可しているので両方向更新可能。
+export async function dissolveFsFriendTeam(myTeamId, otherTeamId) {
+  if (!db || !myTeamId || !otherTeamId) return
+  await authReady
+  try {
+    await Promise.all([
+      updateDoc(doc(db, 'teams', myTeamId), {
+        friendTeamIds: arrayRemove(otherTeamId),
+        updatedAt: serverTimestamp(),
+      }),
+      updateDoc(doc(db, 'teams', otherTeamId), {
+        friendTeamIds: arrayRemove(myTeamId),
+        updatedAt: serverTimestamp(),
+      }),
+    ])
+  } catch (e) {
+    console.error('[firestoreTeams] dissolveFriendTeam failed', e)
+  }
+}
+
 export async function removeFsTeamMember(teamId, uid) {
   if (!db || !teamId || !uid) return
   await authReady

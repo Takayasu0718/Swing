@@ -343,6 +343,12 @@ export const teams = {
     _teams.update(aId, { friendTeamIds: uniq([...(a.friendTeamIds || []), bId]) })
     _teams.update(bId, { friendTeamIds: uniq([...(b.friendTeamIds || []), aId]) })
   },
+  removeFriendTeam(aId, bId) {
+    const a = _teams.get(aId)
+    const b = _teams.get(bId)
+    if (a) _teams.update(aId, { friendTeamIds: (a.friendTeamIds || []).filter((id) => id !== bId) })
+    if (b) _teams.update(bId, { friendTeamIds: (b.friendTeamIds || []).filter((id) => id !== aId) })
+  },
   captainedBy(userId) {
     return _teams.list().filter((t) => t.captainId === userId)
   },

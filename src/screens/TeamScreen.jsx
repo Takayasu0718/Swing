@@ -26,6 +26,7 @@ import {
   updateFsTeam,
   removeFsTeamMember,
   deleteFsTeam,
+  dissolveFsFriendTeam,
 } from '../lib/firestoreTeams.js'
 import {
   sendFsJoinRequest,
@@ -362,6 +363,7 @@ export default function TeamScreen() {
     return (
       <FriendTeamView
         team={viewingTeam}
+        myTeam={myTeam}
         allUsers={allUsers || []}
         allFsTeams={allFsTeams || []}
         onBack={() => setViewingTeamId(null)}
@@ -1528,9 +1530,21 @@ function TrialRequestForm({ request, onCancel, onSave }) {
 }
 
 // フレンドチームの読み取り専用ビュー（チーム検索→申請→承認 後に表示される）
-function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onOpenTeam }) {
+function FriendTeamView({ team, myTeam, allUsers, allFsTeams, onBack, onOpenProfile, onOpenTeam }) {
   // FS チームならメンバーは uid で allUsers から解決、ローカルチームは users.get
   const isFsTeam = !!(allFsTeams || []).find((t) => t.id === team.id)
+  // 自分のチームのフレンドチームに含まれるならフレンドチーム解消可能
+  const isMyFriendTeam = !!myTeam && (myTeam.friendTeamIds || []).includes(team.id)
+  const handleDissolveFriendTeam = async () => {
+    if (!myTeam || !team) return
+    if (!confirm(`「${team.name}」とのフレンドチームを解消します。本当に解消してもよろしいですか？`)) return
+    if (isFsTeam) {
+      await dissolveFsFriendTeam(myTeam.id, team.id)
+    } else {
+      teams.removeFriendTeam(myTeam.id, team.id)
+    }
+    onBack?.()
+  }
   const members = (team.memberIds || [])
     .map((id) => {
       if (isFsTeam) {
@@ -1705,6 +1719,16 @@ function FriendTeamView({ team, allUsers, allFsTeams, onBack, onOpenProfile, onO
           </ul>
         )}
       </section>
+
+      {isMyFriendTeam && (
+        <button
+          type="button"
+          className="danger-btn"
+          onClick={handleDissolveFriendTeam}
+        >
+          フレンドチーム解消
+        </button>
+      )}
     </div>
   )
 }
