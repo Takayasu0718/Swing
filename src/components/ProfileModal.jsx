@@ -11,7 +11,7 @@ import { getStamp } from '../storage/stamps.js'
 import { countAchievementDays, computeStreak, computeLongestStreak } from '../lib/date.js'
 import { levelFromProgress } from '../lib/dragon.js'
 import { sendFriendRequest } from '../lib/events.js'
-import { sendFriendRequestFs } from '../lib/firestoreFriends.js'
+import { sendFriendRequestFs, removeFriendshipFs } from '../lib/firestoreFriends.js'
 import ActivityItem from './ActivityItem.jsx'
 
 export default function ProfileModal() {
@@ -110,12 +110,16 @@ export default function ProfileModal() {
   let isFriend = false
   let outgoingPending = false
   let incomingPending = false
+  let friendshipId = null
+  let friendshipSource = null // 'fs' | 'local'
   if (!isMe) {
     if (isFsUser) {
       const fsRel = (fsFriendships || []).find((f) => f.participants?.includes(user.id))
       isFriend = fsRel?.status === 'accepted'
       outgoingPending = fsRel?.status === 'pending' && fsRel.fromUid === myUid
       incomingPending = fsRel?.status === 'pending' && fsRel.toUid === myUid
+      friendshipId = fsRel?.id ?? null
+      friendshipSource = fsRel ? 'fs' : null
     } else {
       const localRel = friendships.list().find(
         (f) =>
@@ -125,6 +129,8 @@ export default function ProfileModal() {
       isFriend = localRel?.status === 'accepted'
       outgoingPending = localRel?.status === 'pending' && localRel.fromUserId === me.id
       incomingPending = localRel?.status === 'pending' && localRel.toUserId === me.id
+      friendshipId = localRel?.id ?? null
+      friendshipSource = localRel ? 'local' : null
     }
   }
 
@@ -135,6 +141,13 @@ export default function ProfileModal() {
   const handleSendRequest = () => {
     if (isFsUser) sendFriendRequestFs(user.id)
     else sendFriendRequest(me.id, user.id)
+  }
+  const handleUnfriend = () => {
+    if (!friendshipId) return
+    if (!confirm('フレンドを解除しますか？双方のフレンドリストから削除されます。')) return
+    if (friendshipSource === 'fs') removeFriendshipFs(friendshipId)
+    else friendships.remove(friendshipId)
+    closeProfile()
   }
 
   return (
@@ -164,7 +177,17 @@ export default function ProfileModal() {
         {!isMe && (
           <div className="profile-action">
             {isFriend ? (
-              <span className="friend-tag">フレンド</span>
+              <>
+                <span className="friend-tag">フレンド</span>
+                <button
+                  type="button"
+                  className="small-btn"
+                  style={{ marginLeft: '0.5rem' }}
+                  onClick={handleUnfriend}
+                >
+                  フレンド解除
+                </button>
+              </>
             ) : outgoingPending ? (
               <span className="friend-tag">申請中</span>
             ) : incomingPending ? (

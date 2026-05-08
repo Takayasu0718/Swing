@@ -118,6 +118,20 @@ export async function declineFriendRequestFs(friendshipId) {
   }
 }
 
+// 既に成立しているフレンドシップを解除する。
+// participants[] の双方が doc を共有しているため、1 件削除で両者のフレンド
+// リストから即座に消える（onSnapshot で反映）。
+export async function removeFriendshipFs(friendshipId) {
+  if (!db || !friendshipId) return
+  await authReady
+  try {
+    await deleteDoc(doc(db, 'friendships', friendshipId))
+    console.log('[firestoreFriends] friendship removed', friendshipId)
+  } catch (e) {
+    console.error('[firestoreFriends] remove failed', e)
+  }
+}
+
 // Subscribe to friendships involving the current user. Calls callback with list on every change.
 export function subscribeFriendships(myUid, callback) {
   if (!db || !myUid) return () => {}
