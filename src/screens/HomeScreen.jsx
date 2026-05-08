@@ -279,98 +279,6 @@ export default function HomeScreen() {
       )}
 
       {isPlayer && (
-        <section className="info-card stats-row">
-          <div className="stat-cell">
-            <div className="stat-label">今日</div>
-            <div className="stat-value">
-              {todaySwingCount.toLocaleString()}
-              <span className="stat-unit">回</span>
-            </div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-label">累計</div>
-            <div className="stat-value">
-              {totalSwingCount.toLocaleString()}
-              <span className="stat-unit">回</span>
-            </div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-label">連続達成</div>
-            <div className="stat-value">
-              {streak}
-              <span className="stat-unit">日</span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {showDragonAndRanking && showAllUserRanking && (
-        <section className="info-card">
-          <div className="card-title">全ユーザーランキング（直近7日 / 上位10名）</div>
-          {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
-            <EmptyState
-              icon="🏆"
-              title="まだランキングデータがありません"
-              description="ユーザーが素振りを達成するとここに反映されます"
-            />
-          ) : (
-            <ol className="ranking-list">
-              {ranking.map((r, i) => (
-                <li
-                  key={r.uid}
-                  className={`ranking-row ${r.uid === myUid ? 'me' : ''} clickable`}
-                  onClick={() => r.uid && openProfile(r.uid)}
-                >
-                  <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
-                  <span className="activity-stamp small" aria-hidden>
-                    <img src={getStamp(r.avatarStamp).image} alt="" />
-                  </span>
-                  <span className="ranking-name">
-                    {r.nickname}
-                    {r.uid === myUid && <span className="real-tag">あなた</span>}
-                  </span>
-                  <span className="ranking-count">
-                    {r.totalSwing.toLocaleString()}
-                    <span className="stat-unit">回</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-      )}
-
-      {isPlayer && (
-        <section className="info-card">
-          <div className="card-title">直近7日間の素振り</div>
-          {!weeklyHasData ? (
-            <div className="empty-txt">まだ記録がありません</div>
-          ) : (
-            <div className="chart-grid" role="img" aria-label="直近7日間の素振り回数">
-              {weeklyData.map((d) => {
-                const ratio = weeklyMax > 0 ? d.count / weeklyMax : 0
-                return (
-                  <div key={d.date} className={`chart-bar-cell ${d.isToday ? 'today' : ''}`}>
-                    <div className="chart-bar-value">{d.count > 0 ? d.count : ''}</div>
-                    <div className="chart-bar-track">
-                      <div
-                        className="chart-bar-fill"
-                        style={{ height: `${Math.max(ratio * 100, d.count > 0 ? 6 : 0)}%` }}
-                      />
-                    </div>
-                    <div className="chart-bar-label">
-                      <div className="chart-bar-day">{d.day}</div>
-                      <div className="chart-bar-wd">{d.label}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {isPlayer && (
         <section className="info-card">
           <div className="card-title">
             バッティングステータス
@@ -554,6 +462,98 @@ export default function HomeScreen() {
                 保護者承認
               </button>
             </>
+          )}
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card stats-row">
+          <div className="stat-cell">
+            <div className="stat-label">今日</div>
+            <div className="stat-value">
+              {todaySwingCount.toLocaleString()}
+              <span className="stat-unit">回</span>
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">累計</div>
+            <div className="stat-value">
+              {totalSwingCount.toLocaleString()}
+              <span className="stat-unit">回</span>
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">連続達成</div>
+            <div className="stat-value">
+              {streak}
+              <span className="stat-unit">日</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {showDragonAndRanking && showAllUserRanking && (
+        <section className="info-card">
+          <div className="card-title">全ユーザーランキング（直近7日 / 上位10名）</div>
+          {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
+            <EmptyState
+              icon="🏆"
+              title="まだランキングデータがありません"
+              description="ユーザーが素振りを達成するとここに反映されます"
+            />
+          ) : (
+            <ol className="ranking-list">
+              {ranking.map((r, i) => (
+                <li
+                  key={r.uid}
+                  className={`ranking-row ${r.uid === myUid ? 'me' : ''} clickable`}
+                  onClick={() => r.uid && openProfile(r.uid)}
+                >
+                  <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
+                  <span className="activity-stamp small" aria-hidden>
+                    <img src={getStamp(r.avatarStamp).image} alt="" />
+                  </span>
+                  <span className="ranking-name">
+                    {r.nickname}
+                    {r.uid === myUid && <span className="real-tag">あなた</span>}
+                  </span>
+                  <span className="ranking-count">
+                    {r.totalSwing.toLocaleString()}
+                    <span className="stat-unit">回</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
+
+      {isPlayer && (
+        <section className="info-card">
+          <div className="card-title">直近7日間の素振り</div>
+          {!weeklyHasData ? (
+            <div className="empty-txt">まだ記録がありません</div>
+          ) : (
+            <div className="chart-grid" role="img" aria-label="直近7日間の素振り回数">
+              {weeklyData.map((d) => {
+                const ratio = weeklyMax > 0 ? d.count / weeklyMax : 0
+                return (
+                  <div key={d.date} className={`chart-bar-cell ${d.isToday ? 'today' : ''}`}>
+                    <div className="chart-bar-value">{d.count > 0 ? d.count : ''}</div>
+                    <div className="chart-bar-track">
+                      <div
+                        className="chart-bar-fill"
+                        style={{ height: `${Math.max(ratio * 100, d.count > 0 ? 6 : 0)}%` }}
+                      />
+                    </div>
+                    <div className="chart-bar-label">
+                      <div className="chart-bar-day">{d.day}</div>
+                      <div className="chart-bar-wd">{d.label}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </section>
       )}
