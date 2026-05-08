@@ -30,8 +30,6 @@ import {
 import {
   sendFsJoinRequest,
   sendFsFriendTeamRequest,
-  acceptFsTeamRequest,
-  declineFsTeamRequest,
 } from '../lib/firestoreTeamRequests.js'
 import {
   postFsChat,
@@ -80,7 +78,6 @@ export default function TeamScreen() {
     myUid,
     myFsTeam,
     allFsTeams,
-    incomingRequests,
     outgoingRequests,
     refreshAllTeams,
   } = useFirestoreTeams()
@@ -98,9 +95,6 @@ export default function TeamScreen() {
   // 楽観的 UI 用: 送信直後にラウンドトリップを待たず「申請中」を表示
   const [pendingFriendTeamReqs, setPendingFriendTeamReqs] = useState(() => new Set())
   const [pendingJoinReqs, setPendingJoinReqs] = useState(() => new Set())
-  // 処理済み・処理中のチーム宛申請 ID（承認/拒否ボタンの二重押下防止）
-  const [processedIncomingIds, setProcessedIncomingIds] = useState(() => new Set())
-  const [actingIncomingIds, setActingIncomingIds] = useState(() => new Set())
   // チームメイトのアクティビティ表示件数（基本 15、もっと見るで 30）
   const [teamFeedLimit, setTeamFeedLimit] = useState(15)
   // チームチャット: 直近 N 件のみ getDocs + startAfter で取得（onSnapshot 不使用）
@@ -648,100 +642,6 @@ export default function TeamScreen() {
           setEditingTeam(false)
         }}
       />
-
-      {isFsTeam && isCaptain && incomingRequests.length > 0 && (() => {
-        // 既に処理済み（楽観的に hide）の申請は除外
-        const visible = incomingRequests.filter((r) => !processedIncomingIds.has(r.id))
-        const joinReqs = visible.filter((r) => r.kind === 'join')
-        const friendTeamReqs = visible.filter((r) => r.kind === 'friend_team')
-        const groups = [
-          { kind: 'friend_team', title: 'フレンドチーム申請', items: friendTeamReqs },
-          { kind: 'join', title: '加入申請', items: joinReqs },
-        ].filter((g) => g.items.length > 0)
-        return groups.map((g) => (
-        <section key={g.kind} className="info-card">
-          <div className="card-title">{g.title}（{g.items.length}）</div>
-          <ul className="search-list">
-            {g.items.map((req) => {
-              const fromUser = allUsers.find((u) => u.uid === req.fromUid)
-              const label = req.kind === 'join' ? '加入申請' : 'フレンドチーム申請'
-              // フレンドチーム申請の場合は申請元チーム名を取得
-              const fromTeam = req.kind === 'friend_team' && req.fromTeamId
-                ? (allFsTeams || []).find((t) => t.id === req.fromTeamId)
-                : null
-              return (
-                <li key={req.id} className="search-row">
-                  <button
-                    type="button"
-                    className="row-link"
-                    onClick={() => openProfile(req.fromUid)}
-                  >
-                    <span className="activity-stamp" aria-hidden>
-                      <img src={getStamp(fromUser?.avatarStamp).image} alt="" />
-                    </span>
-                    <div className="search-info">
-                      <div className="activity-name">
-                        {fromUser?.nickname ?? req.fromUid.slice(0, 6)}
-                        {fromTeam && (
-                          <span className="friend-tag" style={{ marginLeft: '0.4rem' }}>
-                            {fromTeam.name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="search-sub">{label}</div>
-                    </div>
-                  </button>
-                  <div className="notif-actions">
-                    <button
-                      type="button"
-                      className="small-btn filled"
-                      disabled={actingIncomingIds.has(req.id)}
-                      onClick={async () => {
-                        if (actingIncomingIds.has(req.id) || processedIncomingIds.has(req.id)) return
-                        setActingIncomingIds((p) => new Set(p).add(req.id))
-                        try {
-                          await acceptFsTeamRequest(req.id)
-                          setProcessedIncomingIds((p) => new Set(p).add(req.id))
-                        } catch (e) {
-                          alert(`承認に失敗: ${e?.message || e}`)
-                        } finally {
-                          setActingIncomingIds((p) => {
-                            const next = new Set(p); next.delete(req.id); return next
-                          })
-                        }
-                      }}
-                    >
-                      {actingIncomingIds.has(req.id) ? '処理中…' : '承認'}
-                    </button>
-                    <button
-                      type="button"
-                      className="small-btn"
-                      disabled={actingIncomingIds.has(req.id)}
-                      onClick={async () => {
-                        if (actingIncomingIds.has(req.id) || processedIncomingIds.has(req.id)) return
-                        setActingIncomingIds((p) => new Set(p).add(req.id))
-                        try {
-                          await declineFsTeamRequest(req.id)
-                          setProcessedIncomingIds((p) => new Set(p).add(req.id))
-                        } catch (e) {
-                          alert(`拒否に失敗: ${e?.message || e}`)
-                        } finally {
-                          setActingIncomingIds((p) => {
-                            const next = new Set(p); next.delete(req.id); return next
-                          })
-                        }
-                      }}
-                    >
-                      {actingIncomingIds.has(req.id) ? '処理中…' : '拒否'}
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-        ))
-      })()}
 
       <section className="info-card">
         <div className="card-title">メンバー（{members.length}）</div>

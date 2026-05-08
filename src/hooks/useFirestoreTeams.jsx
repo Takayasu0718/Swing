@@ -1,18 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { authReady } from '../lib/firebase.js'
 import { listAllFsTeams, subscribeMyFsTeams } from '../lib/firestoreTeams.js'
-import {
-  subscribeIncomingTeamRequests,
-  subscribeMyOutgoingTeamRequests,
-} from '../lib/firestoreTeamRequests.js'
+import { subscribeMyOutgoingTeamRequests } from '../lib/firestoreTeamRequests.js'
 
 const Ctx = createContext({
   myUid: null,
   myFsTeams: [],
   myFsTeam: null,
   allFsTeams: [],
-  incomingRequests: [],
   outgoingRequests: [],
   refreshAllTeams: async () => {},
 })
@@ -21,7 +17,6 @@ export function FirestoreTeamsProvider({ children }) {
   const [myUid, setMyUid] = useState(null)
   const [myFsTeams, setMyFsTeams] = useState([])
   const [allFsTeams, setAllFsTeams] = useState([])
-  const [incomingRequests, setIncomingRequests] = useState([])
   const [outgoingRequests, setOutgoingRequests] = useState([])
 
   useEffect(() => {
@@ -52,22 +47,6 @@ export function FirestoreTeamsProvider({ children }) {
     }
   }, [])
 
-  const captainTeamIds = useMemo(
-    () => myFsTeams.filter((t) => t.captainId === myUid).map((t) => t.id),
-    [myFsTeams, myUid],
-  )
-  const captainTeamIdsKey = captainTeamIds.join(',')
-
-  useEffect(() => {
-    const unsub = subscribeIncomingTeamRequests(captainTeamIds, (items) => {
-      setIncomingRequests(items)
-    })
-    return () => {
-      if (unsub) unsub()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captainTeamIdsKey])
-
   const myFsTeam = myFsTeams[0] || null
 
   const refreshAllTeams = async () => {
@@ -82,7 +61,6 @@ export function FirestoreTeamsProvider({ children }) {
         myFsTeams,
         myFsTeam,
         allFsTeams,
-        incomingRequests,
         outgoingRequests,
         refreshAllTeams,
       }}

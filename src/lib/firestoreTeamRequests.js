@@ -162,24 +162,6 @@ export async function declineFsTeamRequest(requestId) {
   console.log('[teamRequests] declined', requestId)
 }
 
-// Captain subscribes to incoming pending requests for the teams they captain.
-export function subscribeIncomingTeamRequests(captainTeamIds, callback) {
-  if (!db || !Array.isArray(captainTeamIds) || captainTeamIds.length === 0) {
-    callback([])
-    return () => {}
-  }
-  const q = query(
-    collection(db, 'teamRequests'),
-    where('teamId', 'in', captainTeamIds.slice(0, 30)),
-    where('status', '==', 'pending'),
-  )
-  return onSnapshot(
-    q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-    (err) => console.error('[teamRequests] incoming listener failed', err),
-  )
-}
-
 // Sender subscribes to their own outgoing pending requests.
 export function subscribeMyOutgoingTeamRequests(myUid, callback) {
   if (!db || !myUid) {
