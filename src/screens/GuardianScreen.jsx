@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
-import { users, missions, settings, __resetAll } from '../storage/storage.js'
+import { users, missions, settings } from '../storage/storage.js'
 import { ROLES, ROLE_LABELS, NOTIFICATION_TYPES, DISPLAY_SETTINGS } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
 import { levelFromProgress } from '../lib/dragon.js'
 import { ensureDemoTeams } from '../storage/seed.js'
+import {
+  wipeAllMyFsData,
+  fetchMyCaptainTeams,
+  signOutAuth,
+} from '../lib/firestoreReset.js'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useDm } from '../hooks/useDm.jsx'
@@ -14,7 +19,6 @@ import {
   setMyParticipation,
 } from '../lib/firestoreTrialRequests.js'
 import { fetchMyConversations } from '../lib/firestoreDms.js'
-import { removeFsTeamMember } from '../lib/firestoreTeams.js'
 
 export default function GuardianScreen({ onNavigate }) {
   const [syncedAt, setSyncedAt] = useState(null)
@@ -79,20 +83,33 @@ export default function GuardianScreen({ onNavigate }) {
   }
 
   const resetAll = async () => {
-    if (!confirm('本当にすべてのデータをリセットしますか？\nプロフィール・素振り記録・ミッション履歴がすべて削除されます。')) return
-    // FS チームに所属していれば脱退してから localStorage をリセット
-    if (myFsTeam?.id && myUid) {
-      if (myFsTeam.captainId === myUid) {
-        alert('キャプテンはリセット前に他のメンバーへキャプテンを譲ってください（チーム画面）。')
+    if (!confirm('本当にすべてのデータをリセットしますか？\nプロフィール・素振り記録・ミッション履歴・通知・フレンド・アクティビティ・DM などすべてのデータが削除されます。')) return
+    // 自分がキャプテンを務めるチームがある場合は譲渡を促して中断
+    if (myUid) {
+      const captainTeams = await fetchMyCaptainTeams(myUid)
+      if (captainTeams.length > 0) {
+        alert(`キャプテンを務めているチームが ${captainTeams.length} 件あります。リセット前に他メンバーへキャプテンを譲ってください（チーム画面）。`)
         return
       }
+    }
+    // Firestore 上の自分のデータを可能な限り削除（best-effort）
+    if (myUid) {
       try {
-        await removeFsTeamMember(myFsTeam.id, myUid)
+        await wipeAllMyFsData(myUid)
       } catch (e) {
-        console.warn('[reset] removeFsTeamMember failed', e)
+        console.warn('[reset] FS wipe failed', e)
       }
     }
-    __resetAll()
+    // Firebase Auth からサインアウトして匿名 uid をリセット
+    await signOutAuth()
+    // localStorage を完全クリア（Firebase 認証関連も含む）
+    try {
+      localStorage.clear()
+    } catch (e) {
+      console.warn('[reset] localStorage.clear failed', e)
+    }
+    // 新規 uid からスタートさせるため強制リロード
+    location.reload()
   }
 
   const syncData = () => {
