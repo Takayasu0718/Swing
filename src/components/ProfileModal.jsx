@@ -209,7 +209,7 @@ export default function ProfileModal() {
               <dd>{days}日</dd>
             </div>
             <div className="stat-row">
-              <dt>スイングドラゴン</dt>
+              <dt>ユーザーレベル</dt>
               <dd>Lv.{level}</dd>
             </div>
           </dl>

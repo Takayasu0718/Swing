@@ -152,7 +152,7 @@ export default function GuardianScreen({ onNavigate }) {
                 <dd>{stats.achievementDays}日</dd>
               </div>
               <div className="stat-row">
-                <dt>スイングドラゴン</dt>
+                <dt>ユーザーレベル</dt>
                 <dd>Lv.{stats.level}</dd>
               </div>
             </dl>
