@@ -19,17 +19,7 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db, authReady } from './firebase.js'
-import { createFsNotification } from './firestoreNotifications.js'
-
-async function fetchNickname(uid) {
-  if (!db || !uid) return ''
-  try {
-    const snap = await getDoc(doc(db, 'users', uid))
-    return snap.exists() ? snap.data().nickname || '' : ''
-  } catch {
-    return ''
-  }
-}
+import { createLikeNotification } from './firestoreNotifications.js'
 
 function tsToIso(ts) {
   if (ts && typeof ts.toDate === 'function') return ts.toDate().toISOString()
@@ -149,12 +139,9 @@ export async function toggleFsActivityLike(activityId, uid) {
     })
     // 「いいね」した瞬間（unliked → liked）かつ自分の投稿でない時に投稿者へ通知
     if (!liked && data.userId && data.userId !== uid) {
-      const likerName = await fetchNickname(uid)
-      await createFsNotification({
-        userId: data.userId,
-        type: 'like',
-        content: `${likerName || '誰か'}さんがあなたのアクティビティにいいねしました`,
-        activityId,
+      await createLikeNotification({
+        recipientUid: data.userId,
+        likeTargetKey: `activity:${activityId}`,
       })
     }
   } catch (e) {

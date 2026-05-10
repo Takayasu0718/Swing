@@ -82,6 +82,32 @@ function isRequestPending(n) {
   return false
 }
 
+// 通知配列を行配列に畳む。同一 likeTargetKey の type='like' 通知は 1 行に集約。
+// 戻り値の各要素は { kind: 'single', item } か { kind: 'like-group', key, items }。
+// items は createdAt 降順、グループの代表 createdAt は最新メンバーのもの。
+function buildRows(merged) {
+  const rows = []
+  const groupIndex = new Map() // likeTargetKey -> row index
+  for (const n of merged) {
+    if (n.type === 'like' && n.likeTargetKey) {
+      const idx = groupIndex.get(n.likeTargetKey)
+      if (idx == null) {
+        rows.push({ kind: 'like-group', key: n.likeTargetKey, items: [n] })
+        groupIndex.set(n.likeTargetKey, rows.length - 1)
+      } else {
+        rows[idx].items.push(n)
+      }
+    } else {
+      rows.push({ kind: 'single', item: n })
+    }
+  }
+  return rows
+}
+
+function rowCreatedAt(row) {
+  return row.kind === 'single' ? row.item.createdAt : row.items[0].createdAt
+}
+
 export default function NotificationScreen() {
   const me = users.getCurrent()
   const { openProfile } = useProfile()
@@ -91,6 +117,8 @@ export default function NotificationScreen() {
   const [processedNotifIds, setProcessedNotifIds] = useState(() => new Set())
   // 処理中（API 完了待ち）の通知 ID — ボタンを disabled にする用
   const [pendingNotifIds, setPendingNotifIds] = useState(() => new Set())
+  // 「他N名」展開中の like グループ key
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState(() => new Set())
   // ローカルストレージの変更を購読し、削除後に再レンダリングを誘発する
   const storeVersion = useStoreVersion()
 
@@ -102,17 +130,24 @@ export default function NotificationScreen() {
   const merged = [...fsItems, ...localItems]
   merged.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
   const unread = merged.filter((n) => !n.read).length
-  // 表示は直近 KEEP_LIMIT 件のみ
-  const visible = merged.slice(0, KEEP_LIMIT)
+  // 行単位で集約してから直近 KEEP_LIMIT 行のみ表示
+  const allRows = buildRows(merged)
+  allRows.sort((a, b) => (rowCreatedAt(a) < rowCreatedAt(b) ? 1 : -1))
+  const visibleRows = allRows.slice(0, KEEP_LIMIT)
 
-  // 直近 KEEP_LIMIT 件以外は FS / local 双方から削除する。
+  // 直近 KEEP_LIMIT 行に含まれない通知 ID は FS / local 双方から削除する。
+  // like グループは構成メンバー全てを保持対象に含める（残しているグループの
+  // liker 一覧を維持するため）。
   // 依存配列: fsItems（FS 購読の差分）と storeVersion（ローカル更新の差分）。
-  // 削除後は購読・bump で再レンダリングされ、merged.length <= KEEP_LIMIT
-  // になるまで自然収束する。
+  // 削除後は購読・bump で再レンダリングされ自然収束する。
   useEffect(() => {
     if (!me || !myUid) return
-    if (merged.length <= KEEP_LIMIT) return
-    const keepKeys = new Set(visible.map((n) => `${n.source}-${n.id}`))
+    if (allRows.length <= KEEP_LIMIT) return
+    const keepKeys = new Set()
+    for (const row of visibleRows) {
+      const items = row.kind === 'single' ? [row.item] : row.items
+      for (const n of items) keepKeys.add(`${n.source}-${n.id}`)
+    }
     for (const n of fsItems) {
       if (!keepKeys.has(`fs-${n.id}`)) deleteFsNotification(n.id)
     }
@@ -190,6 +225,111 @@ export default function NotificationScreen() {
     }
   }
 
+  const toggleExpandGroup = (key) => {
+    setExpandedGroupKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  // like グループ行: 同一 likeTargetKey の type='like' 通知をまとめて 1 行に表示。
+  // liker は uid で dedupe（同一ユーザーの toggle 連打を 1 名にまとめる）し、
+  // 各 uid の最新通知をエントリとして採用。
+  const renderLikeGroup = (row) => {
+    // items は merged 由来で createdAt 降順。先に来たものが最新。
+    const seen = new Set()
+    const uniqueLikers = []
+    for (const n of row.items) {
+      const uid = n.fromUserId
+      if (!uid || seen.has(uid)) continue
+      seen.add(uid)
+      const from = lookupFrom(uid)
+      const nickname = from?.nickname || n.fromUserNickname || '誰か'
+      uniqueLikers.push({ uid, nickname, avatarStamp: from?.avatarStamp, profileId: from?.id })
+    }
+    if (uniqueLikers.length === 0) return null
+    const latest = uniqueLikers[0]
+    const stampImg = latest.avatarStamp ? getStamp(latest.avatarStamp).image : null
+    const stampEmoji = stampImg ? '' : (TYPE_ICON.like || '♥')
+    const others = uniqueLikers.length - 1
+    const expanded = expandedGroupKeys.has(row.key)
+    const isUnread = row.items.some((n) => !n.read)
+    const latestCreatedAt = row.items[0].createdAt
+
+    const markRowRead = () => {
+      for (const n of row.items) {
+        if (!n.read) markRead(n)
+      }
+    }
+    const onRowClick = () => {
+      markRowRead()
+      if (latest.profileId) openProfile(latest.profileId)
+    }
+    return (
+      <li
+        key={`like-group-${row.key}`}
+        className={`notif-row ${isUnread ? 'unread' : ''} clickable`}
+        onClick={onRowClick}
+      >
+        {latest.profileId ? (
+          <button
+            type="button"
+            className="notif-icon-btn"
+            onClick={(e) => { e.stopPropagation(); openProfile(latest.profileId) }}
+            aria-label={`${latest.nickname}のプロフィール`}
+          >
+            <span className="notif-icon" aria-hidden>
+              {stampImg ? <img src={stampImg} alt="" /> : stampEmoji}
+            </span>
+          </button>
+        ) : (
+          <span className="notif-icon" aria-hidden>{stampEmoji}</span>
+        )}
+        <div className="notif-body">
+          <div className="notif-content">
+            {others === 0 ? (
+              <>{latest.nickname}さんがいいねをくれました</>
+            ) : (
+              <>
+                {latest.nickname}さん
+                <button
+                  type="button"
+                  className="like-others-btn"
+                  onClick={(e) => { e.stopPropagation(); toggleExpandGroup(row.key) }}
+                  aria-expanded={expanded}
+                >
+                  他{others}名
+                </button>
+                がいいねをくれました
+              </>
+            )}
+          </div>
+          {expanded && others > 0 && (
+            <ul className="like-others-list">
+              {uniqueLikers.map((u) => (
+                <li key={u.uid}>
+                  <button
+                    type="button"
+                    className="like-others-item"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (u.profileId) openProfile(u.profileId)
+                    }}
+                  >
+                    {u.nickname}さん
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="notif-time">{relativeTime(latestCreatedAt)}</div>
+        </div>
+      </li>
+    )
+  }
+
   const handleDecline = async (n) => {
     if (processedNotifIds.has(n.id) || pendingNotifIds.has(n.id)) return
     console.log('[notif] decline clicked', { type: n.type, source: n.source, requestId: n.requestId })
@@ -224,13 +364,13 @@ export default function NotificationScreen() {
         {unread > 0 && <span className="unread-pill">{unread}</span>}
       </h1>
 
-      {visible.length > 0 && unread > 0 && (
+      {visibleRows.length > 0 && unread > 0 && (
         <button className="outline-btn mark-all" onClick={markAllRead}>
           すべて既読にする
         </button>
       )}
 
-      {visible.length === 0 ? (
+      {visibleRows.length === 0 ? (
         <section className="info-card">
           <EmptyState
             icon="🔔"
@@ -240,7 +380,11 @@ export default function NotificationScreen() {
         </section>
       ) : (
         <ul className="notif-list">
-          {visible.map((n) => {
+          {visibleRows.map((row) => {
+            if (row.kind === 'like-group') {
+              return renderLikeGroup(row)
+            }
+            const n = row.item
             const from = lookupFrom(n.fromUserId)
             const stampImg = from ? getStamp(from.avatarStamp).image : null
             const stampEmoji = from ? '' : (TYPE_ICON[n.type] || '🔔')

@@ -2217,6 +2217,47 @@ body.has-baseball-bg .screen-title {
   margin-top: 0.5rem;
 }
 
+.like-others-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--accent, #2563eb);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.like-others-btn:hover {
+  opacity: 0.8;
+}
+
+.like-others-list {
+  list-style: none;
+  padding: 0.4rem 0 0;
+  margin: 0.3rem 0 0;
+  border-top: 1px dashed var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.like-others-item {
+  background: none;
+  border: none;
+  padding: 0.15rem 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--slate-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.like-others-item:hover {
+  color: var(--accent, #2563eb);
+}
+
 /* ================ Profile modal ================ */
 .modal-overlay {
   position: fixed;

@@ -25,6 +25,16 @@ function tsToIso(ts) {
   return null
 }
 
+async function fetchNickname(uid) {
+  if (!db || !uid) return ''
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    return snap.exists() ? snap.data().nickname || '' : ''
+  } catch {
+    return ''
+  }
+}
+
 export async function createFsNotification(data) {
   if (!db || !data?.userId || !data?.type) return null
   const myUid = await authReady
@@ -37,6 +47,8 @@ export async function createFsNotification(data) {
       content: data.content || '',
       activityId: data.activityId ?? null,
       requestId: data.requestId ?? null,
+      likeTargetKey: data.likeTargetKey ?? null,
+      fromUserNickname: data.fromUserNickname ?? null,
       likeUserIds: [],
       read: false,
       createdAt: serverTimestamp(),
@@ -46,6 +58,26 @@ export async function createFsNotification(data) {
     console.error('[firestoreNotifications] create failed', e)
     return null
   }
+}
+
+// アクティビティ / チャット / 通知へのいいね共通の発火点。
+// recipientUid に対して「〇〇さんがいいねをくれました」通知を1件作成する。
+// likeTargetKey は NotificationScreen 側で同一対象のいいねを集約するためのキー
+// （activity:<id> / chat:<teamId>:<msgId> / notif:<id>）。
+// 自分自身のものへの like は通知しない。
+export async function createLikeNotification({ recipientUid, likeTargetKey }) {
+  if (!db || !recipientUid || !likeTargetKey) return null
+  const myUid = await authReady
+  if (!myUid || myUid === recipientUid) return null
+  const nickname = await fetchNickname(myUid)
+  return createFsNotification({
+    userId: recipientUid,
+    type: 'like',
+    fromUserId: myUid,
+    content: `${nickname || '誰か'}さんがいいねをくれました`,
+    likeTargetKey,
+    fromUserNickname: nickname || '',
+  })
 }
 
 export function subscribeMyFsNotifications(myUid, callback) {
@@ -68,6 +100,8 @@ export function subscribeMyFsNotifications(myUid, callback) {
           content: data.content,
           activityId: data.activityId ?? null,
           requestId: data.requestId ?? null,
+          likeTargetKey: data.likeTargetKey ?? null,
+          fromUserNickname: data.fromUserNickname ?? null,
           likeUserIds: data.likeUserIds || [],
           read: !!data.read,
           processed: !!data.processed,
@@ -137,10 +171,19 @@ export async function toggleLikeFsNotification(notifId, uid) {
     const ref = doc(db, 'notifications', notifId)
     const snap = await getDoc(ref)
     if (!snap.exists()) return
-    const liked = (snap.data().likeUserIds || []).includes(uid)
+    const data = snap.data()
+    const liked = (data.likeUserIds || []).includes(uid)
     await updateDoc(ref, {
       likeUserIds: liked ? arrayRemove(uid) : arrayUnion(uid),
     })
+    // 通知（=祝われた本人の出来事）への like を、本人へ通知。
+    // 例: MVP_selected の fromUserId = MVP本人。チームメイトの like がここで本人に届く。
+    if (!liked && data.fromUserId && data.fromUserId !== uid) {
+      await createLikeNotification({
+        recipientUid: data.fromUserId,
+        likeTargetKey: `notif:${notifId}`,
+      })
+    }
   } catch (e) {
     console.error('[firestoreNotifications] toggleLike failed', e)
   }
