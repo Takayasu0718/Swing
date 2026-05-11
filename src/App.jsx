@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { users, notifications, missions, useStoreVersion } from './storage/storage.js'
+import { users, session, notifications, missions, useStoreVersion } from './storage/storage.js'
 import { ROLES } from './storage/schema.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
-import { ensureAnonymousAuth } from './lib/firebase.js'
-import { syncUserProfile } from './lib/firestoreSync.js'
+import { auth, subscribeAuthState } from './lib/firebase.js'
+import { syncUserProfile, fetchMyUserProfile } from './lib/firestoreSync.js'
 import { subscribeMyConversations } from './lib/firestoreDms.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'
 import { maybeFireGoalReminder } from './lib/reminder.js'
@@ -13,6 +13,7 @@ import {
   subscribeTrialRequest,
   subscribeMyParticipation,
 } from './lib/firestoreTrialRequests.js'
+import LoginScreen from './screens/LoginScreen.jsx'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -52,7 +53,54 @@ const TABS = [
 
 function AppShell() {
   useStoreVersion()
+  // authUid: undefined = 判定中, null = 未ログイン, string = ログイン中
+  const [authUid, setAuthUid] = useState(undefined)
+  // どの authUid に対して Firestore profile fetch を完了したか（uid または null）
+  const [profileFetchedFor, setProfileFetchedFor] = useState(null)
+
+  useEffect(() => {
+    return subscribeAuthState((uid) => setAuthUid(uid))
+  }, [])
+
+  // ログイン直後に Firestore から自分の profile を読み戻して localStorage に投入。
+  // ローカルに既に current user がある場合（再読込時等）は fetch 不要。
+  useEffect(() => {
+    if (!authUid) return undefined
+    if (users.getCurrent()) return undefined
+    if (profileFetchedFor === authUid) return undefined
+    let cancelled = false
+    fetchMyUserProfile().then((p) => {
+      if (cancelled) return
+      if (p && p.nickname) {
+        const u = users.create({
+          email: auth?.currentUser?.email || p.email || '',
+          nickname: p.nickname || '',
+          userId: p.userId || '',
+          avatarStamp: p.avatarStamp || '',
+          role: p.role || 'player',
+          dailyGoal: p.dailyGoal ?? null,
+          advice: p.advice || '',
+          teamName: p.teamName || '',
+          childIds: p.childIds || [],
+          guardianId: p.guardianId ?? null,
+          battingStatus: p.battingStatus || undefined,
+          customStatusLabel: p.customStatusLabel || '',
+          battingStatusPenaltyCount: p.battingStatusPenaltyCount || 0,
+        })
+        session.setCurrentUser(u.id)
+      }
+      setProfileFetchedFor(authUid)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [authUid, profileFetchedFor])
+
   const current = users.getCurrent()
+  // profile チェック完了: 未ログインか、ローカルに current user がある、
+  // または対応する authUid で fetch 済み。
+  const profileChecked =
+    authUid === null || !!current || profileFetchedFor === authUid
   const [tab, setTab] = useState('home')
   const needsUserIdSetup = !!current && !current.userId
   const activeTab = !current || needsUserIdSetup ? 'register' : tab
@@ -130,10 +178,11 @@ function AppShell() {
     return () => clearInterval(interval)
   }, [current])
 
+  // ログイン済みかつ profile 確定後に Firestore から過去の素振り履歴を取り込み。
   useEffect(() => {
+    if (!authUid || !profileChecked) return undefined
     let cancelled = false
-    ensureAnonymousAuth().then(async (uid) => {
-      if (cancelled || !uid) return
+    ;(async () => {
       const me = users.getCurrent()
       if (!me) return
       syncUserProfile(me)
@@ -158,11 +207,11 @@ function AppShell() {
       })
       console.log('[Firestore] converted missions', records)
       missions.upsertMany(records)
-    })
+    })()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authUid, profileChecked])
 
   const localUnread = current ? notifications.unreadCount(current.id) : 0
   const unreadCount = localUnread + fsUnread
@@ -173,6 +222,30 @@ function AppShell() {
       if (fsUnread > 0 && myUid) markAllReadFsNotifications(myUid)
     }
     setTab(next)
+  }
+
+  // Auth ゲート: 初期判定中 / 未ログイン / プロフィール読込中。
+  // 全 hook 呼び出しの後でここに来ること（React のルール）。
+  if (authUid === undefined) {
+    return (
+      <div className="app-root">
+        <div className="screen"><div className="empty-txt">読み込み中…</div></div>
+      </div>
+    )
+  }
+  if (authUid === null) {
+    return (
+      <div className="app-root">
+        <LoginScreen />
+      </div>
+    )
+  }
+  if (!profileChecked) {
+    return (
+      <div className="app-root">
+        <div className="screen"><div className="empty-txt">プロフィールを読み込み中…</div></div>
+      </div>
+    )
   }
 
   let screen

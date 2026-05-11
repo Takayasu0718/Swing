@@ -3,13 +3,29 @@
 // localStorage stays the source of truth for the screens; Firestore writes
 // are fire-and-forget. Errors are logged but never thrown.
 
-import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { auth, db, getAuthUid, authReady } from './firebase.js'
 
 async function ready() {
   if (!db) return null
   await authReady
   return getAuthUid() || auth?.currentUser?.uid || null
+}
+
+// ログイン直後に Firestore から自分の profile を読み戻す。
+// 戻り値: 存在すればプレーンなオブジェクト、無ければ null。
+export async function fetchMyUserProfile() {
+  if (!db) return null
+  const uid = await ready()
+  if (!uid) return null
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    if (!snap.exists()) return null
+    return snap.data()
+  } catch (e) {
+    console.warn('[firestoreSync] fetchMyUserProfile failed', e)
+    return null
+  }
 }
 
 export async function syncUserProfile(user) {

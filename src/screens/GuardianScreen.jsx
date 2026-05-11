@@ -10,6 +10,8 @@ import {
   fetchMyCaptainTeams,
   signOutAuth,
 } from '../lib/firestoreReset.js'
+import { auth, signOutUser } from '../lib/firebase.js'
+import { wipeAllLocalData } from '../storage/storage.js'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useDm } from '../hooks/useDm.jsx'
@@ -115,6 +117,22 @@ export default function GuardianScreen({ onNavigate }) {
   const syncData = () => {
     ensureDemoTeams()
     setSyncedAt(new Date())
+  }
+
+  // 通常のログアウト。ローカルキャッシュを wipe して reload（hooks の myUid を再取得させる）。
+  const handleLogout = async () => {
+    if (!confirm('ログアウトしますか？')) return
+    try {
+      await signOutUser()
+    } catch (e) {
+      console.warn('[logout] sign out failed', e)
+    }
+    try {
+      wipeAllLocalData()
+    } catch (e) {
+      console.warn('[logout] wipe local failed', e)
+    }
+    location.reload()
   }
 
   return (
@@ -293,6 +311,21 @@ export default function GuardianScreen({ onNavigate }) {
               </button>
             )
           })}
+        </div>
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">アカウント</div>
+        <div className="trial-request-row">
+          <b>メールアドレス:</b> {auth?.currentUser?.email || '不明'}
+        </div>
+        <div className="btn-row" style={{ marginTop: '0.6rem' }}>
+          <button className="outline-btn" onClick={handleLogout}>
+            ログアウト
+          </button>
+        </div>
+        <div className="empty-txt" style={{ marginTop: '0.4rem' }}>
+          別のアカウントを使う場合は、一度ログアウトしてからログイン画面で切り替えてください。
         </div>
       </section>
 

@@ -34,6 +34,19 @@ function write(key, value) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
+// 全 localStorage キーを破棄する（ログアウト・アカウント切替時に呼ぶ）。
+// listeners.bump で購読側を即時再レンダリング。
+export function wipeAllLocalData() {
+  for (const key of Object.values(KEYS)) {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      // ignore
+    }
+  }
+  bump()
+}
+
 const listeners = new Set()
 let version = 0
 function bump() {

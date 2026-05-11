@@ -3,7 +3,7 @@ import { users, session } from '../storage/storage.js'
 import { STAMPS } from '../storage/stamps.js'
 import { ROLES, DAILY_GOAL_OPTIONS, USER_ID_REGEX, USER_ID_RULE } from '../storage/schema.js'
 import { onGoalRaised } from '../lib/events.js'
-import { authReady } from '../lib/firebase.js'
+import { auth, authReady } from '../lib/firebase.js'
 import { reserveUsername } from '../lib/firestoreUsername.js'
 import { syncUserProfile } from '../lib/firestoreSync.js'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
@@ -15,7 +15,8 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const { myUid, friendships: fsFriendships, refreshAllUsers } = useFirestoreFriends()
   const { myFsTeam } = useFirestoreTeams()
 
-  const [email, setEmail] = useState(current?.email ?? '')
+  // メールアドレスは Firebase Auth が真実の源。フォームでは編集不可で表示のみ。
+  const email = auth?.currentUser?.email || current?.email || ''
   const [nickname, setNickname] = useState(current?.nickname ?? '')
   const [userId, setUserId] = useState(current?.userId ?? '')
   const [teamName, setTeamName] = useState(current?.teamName ?? '')
@@ -110,8 +111,8 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="example@mail.com"
+          readOnly
+          placeholder="未設定"
           autoComplete="email"
         />
       </label>

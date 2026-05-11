@@ -2075,6 +2075,58 @@ body.has-baseball-bg .screen-title {
   flex-direction: row-reverse;
 }
 
+/* ================ Login ================ */
+.login-screen {
+  padding-top: 2rem;
+}
+
+.form-error {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.7rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.form-info {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.login-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.login-sep {
+  color: var(--slate-500);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--blue-700);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  opacity: 0.8;
+}
+
 .chat-actions {
   display: flex;
   flex-direction: column;

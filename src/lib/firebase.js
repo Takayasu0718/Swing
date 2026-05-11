@@ -1,9 +1,17 @@
 // Firebase bootstrap. Reads config from VITE_FIREBASE_* env vars (.env.local).
-// Anonymous sign-in is kicked off as soon as this module is imported, so
-// `authReady` resolves before any UI tries to use Firestore.
+// Email/Password 認証のみ。匿名サインインは廃止。
+// 初回起動時は onAuthStateChanged が解決した時点で authReady が resolve する
+// （未ログインなら null）。
 
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth'
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+} from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -23,11 +31,14 @@ let auth = null
 let db = null
 let currentUid = null
 
-// Resolves with the uid (or null) once auth state is known.
+// Resolves once initial auth state is known (uid or null).
 let authReadyResolve
 const authReady = new Promise((resolve) => {
   authReadyResolve = resolve
 })
+let initialAuthResolved = false
+
+const authStateListeners = new Set()
 
 if (isConfigured) {
   try {
@@ -36,34 +47,28 @@ if (isConfigured) {
     db = getFirestore(app)
     console.log('[firebase] initialized')
 
-    // Kick off anonymous sign-in immediately on module load.
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      unsub()
-      if (user) {
-        currentUid = user.uid
-        console.log('[firebase] auth ready (existing)', user.uid)
-        authReadyResolve(user.uid)
-        return
+    onAuthStateChanged(auth, (user) => {
+      currentUid = user?.uid ?? null
+      if (!initialAuthResolved) {
+        initialAuthResolved = true
+        console.log('[firebase] initial auth state', currentUid)
+        authReadyResolve(currentUid)
+      } else {
+        console.log('[firebase] auth state change', currentUid)
       }
-      try {
-        const cred = await signInAnonymously(auth)
-        currentUid = cred.user.uid
-        console.log('[firebase] auth ready (anonymous)', cred.user.uid)
-        authReadyResolve(cred.user.uid)
-      } catch (e) {
-        console.error('[firebase] anonymous sign-in failed', e)
-        authReadyResolve(null)
-      }
+      for (const cb of authStateListeners) cb(currentUid)
     })
   } catch (e) {
-    console.warn('[firebase] init failed, continuing on localStorage', e)
+    console.warn('[firebase] init failed', e)
     app = null
     auth = null
     db = null
+    initialAuthResolved = true
     authReadyResolve(null)
   }
 } else {
   console.log('[firebase] disabled (set VITE_FIREBASE_* in .env.local to enable)')
+  initialAuthResolved = true
   authReadyResolve(null)
 }
 
@@ -74,7 +79,36 @@ export function getAuthUid() {
   return currentUid
 }
 
-// Back-compat alias: returns the same promise as `authReady`.
+// auth state 変化を購読。登録直後にも現在値で 1 回コールバックを発火。
+export function subscribeAuthState(callback) {
+  authStateListeners.add(callback)
+  callback(currentUid)
+  return () => authStateListeners.delete(callback)
+}
+
+export async function signUpEmail(email, password) {
+  if (!auth) throw new Error('Firebase Auth が初期化されていません')
+  const cred = await createUserWithEmailAndPassword(auth, email, password)
+  return cred.user.uid
+}
+
+export async function signInEmail(email, password) {
+  if (!auth) throw new Error('Firebase Auth が初期化されていません')
+  const cred = await signInWithEmailAndPassword(auth, email, password)
+  return cred.user.uid
+}
+
+export async function signOutUser() {
+  if (!auth) return
+  await signOut(auth)
+}
+
+export async function sendPasswordReset(email) {
+  if (!auth) throw new Error('Firebase Auth が初期化されていません')
+  await sendPasswordResetEmail(auth, email)
+}
+
+// Back-compat alias used by older callers. Always returns the initial-state promise.
 export function ensureAnonymousAuth() {
   return authReady
 }
