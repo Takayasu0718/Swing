@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { users, notifications, missions, useStoreVersion } from './storage/storage.js'
+import { ROLES } from './storage/schema.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import { ensureAnonymousAuth } from './lib/firebase.js'
 import { syncUserProfile } from './lib/firestoreSync.js'
@@ -8,6 +9,10 @@ import { subscribeMyConversations } from './lib/firestoreDms.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'
 import { maybeFireGoalReminder } from './lib/reminder.js'
 import { applyMissPenaltyIfNeeded } from './lib/battingPenalty.js'
+import {
+  subscribeTrialRequest,
+  subscribeMyParticipation,
+} from './lib/firestoreTrialRequests.js'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
@@ -26,6 +31,7 @@ import {
   useFirestoreNotifications,
 } from './hooks/useFirestoreNotifications.jsx'
 import { FirestoreActivitiesProvider } from './hooks/useFirestoreActivities.jsx'
+import { useFirestoreTeams } from './hooks/useFirestoreTeams.jsx'
 import { markAllReadFsNotifications } from './lib/firestoreNotifications.js'
 
 import tabRegister from './assets/tabs/register.png'
@@ -52,7 +58,34 @@ function AppShell() {
   const activeTab = !current || needsUserIdSetup ? 'register' : tab
   const { unread: fsUnread, myUid } = useFirestoreNotifications()
   const { partnerUid: openDmPartner } = useDm()
+  const { myFsTeam } = useFirestoreTeams()
   const [dmConversations, setDmConversations] = useState([])
+  const [trialRequest, setTrialRequest] = useState(null)
+  const [trialParticipation, setTrialParticipation] = useState(null)
+  const isTrial = current?.role === ROLES.TRIAL
+
+  // 体験ユーザーのみ trialRequest/参加状態を購読し、未回答/更新後フラグを算出。
+  // updatedAt > respondedAt の場合も再回答を促すため badge を立てる。
+  // role/team 切り替え時の stale state は trialUnanswered の式側で
+  // isTrial && myFsTeam?.id を要求して無効化する。
+  useEffect(() => {
+    if (!isTrial || !myFsTeam?.id) return undefined
+    return subscribeTrialRequest(myFsTeam.id, setTrialRequest)
+  }, [isTrial, myFsTeam?.id])
+
+  useEffect(() => {
+    if (!isTrial || !myFsTeam?.id || !myUid) return undefined
+    return subscribeMyParticipation(myFsTeam.id, myUid, setTrialParticipation)
+  }, [isTrial, myFsTeam?.id, myUid])
+
+  const trialUnanswered =
+    isTrial &&
+    !!myFsTeam?.id &&
+    !!trialRequest &&
+    (!trialParticipation ||
+      (trialRequest.updatedAt &&
+        (!trialParticipation.respondedAt ||
+          trialParticipation.respondedAt < trialRequest.updatedAt)))
 
   // DM の未読数を保護者タブのバッジに出すため、会話メタを軽量購読
   // （メッセージ本体ではなく conversation doc のみ。送信のたびに 1 回更新されるだけなので安価）
@@ -174,7 +207,10 @@ function AppShell() {
         active={activeTab}
         onChange={handleTabChange}
         locked={!current || needsUserIdSetup ? 'register' : null}
-        badges={{ notif: unreadCount, guardian: dmUnreadCount }}
+        badges={{
+          notif: unreadCount,
+          guardian: { count: dmUnreadCount, dot: trialUnanswered },
+        }}
       />
       <ProfileModal />
       <DmOverlay />

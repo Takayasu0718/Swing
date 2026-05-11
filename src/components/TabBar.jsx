@@ -1,9 +1,17 @@
+// badges[key] は number または { count, dot }。
+// count > 0 なら数値バッジ、count==0 で dot==true なら赤ドットだけ表示。
+function parseBadge(b) {
+  if (typeof b === 'number') return { count: b, dot: false }
+  if (b && typeof b === 'object') return { count: b.count || 0, dot: !!b.dot }
+  return { count: 0, dot: false }
+}
+
 export default function TabBar({ tabs, active, onChange, locked, badges = {} }) {
   return (
     <nav className="tab-bar" aria-label="main navigation">
       {tabs.map((t) => {
         const isLocked = locked && t.key !== locked
-        const badge = badges[t.key] || 0
+        const { count, dot } = parseBadge(badges[t.key])
         return (
           <button
             key={t.key}
@@ -24,9 +32,11 @@ export default function TabBar({ tabs, active, onChange, locked, badges = {} }) 
               ) : (
                 t.icon
               )}
-              {badge > 0 && (
-                <span className="tab-badge">{badge > 99 ? '99+' : badge}</span>
-              )}
+              {count > 0 ? (
+                <span className="tab-badge">{count > 99 ? '99+' : count}</span>
+              ) : dot ? (
+                <span className="tab-badge tab-badge-dot" aria-label="未対応の通知あり" />
+              ) : null}
             </span>
             <span className="tab-label">{t.label}</span>
           </button>

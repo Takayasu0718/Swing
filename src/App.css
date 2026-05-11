@@ -2545,6 +2545,16 @@ button.friend-chip:hover {
   box-sizing: content-box;
 }
 
+.tab-badge.tab-badge-dot {
+  min-width: 0;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  top: -3px;
+  right: -6px;
+  border-width: 2px;
+}
+
 .tab-label {
   font-size: 0.7rem;
   font-weight: 600;
