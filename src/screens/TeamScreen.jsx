@@ -1460,6 +1460,9 @@ function TeamTrialRequestCard({
         <TrialRequestForm request={request} onCancel={onCancel} onSave={onSave} />
       ) : request ? (
         <>
+          <div className="trial-event-type-badge">
+            {request.eventType === 'helper' ? '試合助っ人参加' : '体験会'}
+          </div>
           <div className="trial-request-row"><b>開催日:</b> {request.date || '未設定'}</div>
           <div className="trial-request-row"><b>場所:</b> {request.location || '未設定'}</div>
           {request.notes && (
@@ -1480,6 +1483,7 @@ function TeamTrialRequestCard({
 }
 
 function TrialRequestForm({ request, onCancel, onSave }) {
+  const [eventType, setEventType] = useState(request?.eventType ?? 'trial')
   const [date, setDate] = useState(request?.date ?? '')
   const [location, setLocation] = useState(request?.location ?? '')
   const [notes, setNotes] = useState(request?.notes ?? '')
@@ -1489,7 +1493,7 @@ function TrialRequestForm({ request, onCancel, onSave }) {
     if (!date) return
     setSaving(true)
     try {
-      await onSave({ date, location: location.trim(), notes: notes.trim() })
+      await onSave({ eventType, date, location: location.trim(), notes: notes.trim() })
     } finally {
       setSaving(false)
     }
@@ -1497,6 +1501,27 @@ function TrialRequestForm({ request, onCancel, onSave }) {
 
   return (
     <div className="match-form">
+      <div className="field">
+        <span className="field-label">イベント種別 <span className="req">*</span></span>
+        <div className="btn-row event-type-row">
+          <button
+            type="button"
+            className={`role-btn ${eventType === 'trial' ? 'active' : ''}`}
+            onClick={() => setEventType('trial')}
+            aria-pressed={eventType === 'trial'}
+          >
+            体験会
+          </button>
+          <button
+            type="button"
+            className={`role-btn ${eventType === 'helper' ? 'active' : ''}`}
+            onClick={() => setEventType('helper')}
+            aria-pressed={eventType === 'helper'}
+          >
+            試合助っ人参加
+          </button>
+        </div>
+      </div>
       <label className="field">
         <span className="field-label">開催日 <span className="req">*</span></span>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />

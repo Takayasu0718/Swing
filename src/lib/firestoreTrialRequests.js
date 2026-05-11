@@ -22,17 +22,23 @@ function tsToIso(ts) {
   return null
 }
 
+// eventType: 'trial' | 'helper'。後方互換のため未設定なら 'trial' にフォールバック。
 function shapeRequest(snap) {
   if (!snap.exists()) return null
   const d = snap.data()
   return {
     teamId: snap.id,
+    eventType: d.eventType === 'helper' ? 'helper' : 'trial',
     date: d.date || '',
     location: d.location || '',
     notes: d.notes || '',
     updatedAt: tsToIso(d.updatedAt),
     createdAt: tsToIso(d.createdAt),
   }
+}
+
+export function eventTypeLabel(eventType) {
+  return eventType === 'helper' ? '試合助っ人参加' : '体験会'
 }
 
 // 1チーム1件のリクエストを購読
@@ -59,10 +65,12 @@ export async function setTrialRequest(teamId, fields, options = {}) {
   if (!myUid) return false
   const { trialUids = [], teamName = '' } = options
   try {
+    const eventType = fields.eventType === 'helper' ? 'helper' : 'trial'
     const ref = doc(db, 'trialRequests', teamId)
     const existing = await getDoc(ref)
     const payload = {
       teamId,
+      eventType,
       date: fields.date || '',
       location: fields.location || '',
       notes: fields.notes || '',
@@ -78,11 +86,12 @@ export async function setTrialRequest(teamId, fields, options = {}) {
 
     const teamLabel = teamName ? `「${teamName}」` : 'チーム'
     const verb = existing.exists() ? '更新' : '受付開始'
+    const eventLabel = eventTypeLabel(eventType)
     for (const uid of recipients) {
       await createFsNotification({
         userId: uid,
         type: 'trial_request',
-        content: `${teamLabel}の体験会・助っ人参加のお願いが${verb}されました`,
+        content: `${teamLabel}の${eventLabel}のお願いが${verb}されました`,
       })
     }
     return true

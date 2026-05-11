@@ -174,6 +174,9 @@ export default function GuardianScreen({ onNavigate }) {
       {isTrial && trialRequest && myFsTeam?.id && (
         <section className="info-card">
           <div className="card-title">体験会・助っ人参加のお願い</div>
+          <div className="trial-event-type-badge">
+            {trialRequest.eventType === 'helper' ? '試合助っ人参加' : '体験会'}
+          </div>
           <div className="trial-request-row"><b>開催日:</b> {trialRequest.date || '未設定'}</div>
           <div className="trial-request-row"><b>場所:</b> {trialRequest.location || '未設定'}</div>
           {trialRequest.notes && (
