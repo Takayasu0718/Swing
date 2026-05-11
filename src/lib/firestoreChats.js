@@ -115,6 +115,20 @@ export async function postFsChat(teamId, content) {
   }
 }
 
+// 自分の投稿だけ削除する UI 用。Firestore ルールではチームメンバーなら誰でも
+// delete 可能（prune 兼用のため）なので、呼び出し側で投稿者チェックを行うこと。
+export async function deleteFsChatMessage(teamId, messageId) {
+  if (!db || !teamId || !messageId) return false
+  await authReady
+  try {
+    await deleteDoc(doc(db, 'teams', teamId, 'messages', messageId))
+    return true
+  } catch (e) {
+    console.error('[firestoreChats] delete failed', e)
+    return false
+  }
+}
+
 export async function toggleFsChatLike(teamId, messageId, uid) {
   if (!db || !teamId || !messageId || !uid) return
   await authReady

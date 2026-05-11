@@ -509,6 +509,13 @@ export const chats = {
     bump()
     return arr[idx]
   },
+  delete(id) {
+    const arr = loadChats()
+    const next = arr.filter((c) => c.id !== id)
+    if (next.length === arr.length) return
+    saveChats(next)
+    bump()
+  },
 }
 
 // ============ notifications ============

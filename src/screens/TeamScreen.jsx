@@ -37,6 +37,7 @@ import {
   toggleFsChatLike,
   fetchRecentChats,
   pruneOldChats,
+  deleteFsChatMessage,
 } from '../lib/firestoreChats.js'
 import {
   subscribeTrialRequest,
@@ -460,6 +461,24 @@ export default function TeamScreen() {
     }
   }
 
+  // 自分の投稿のみ削除可能。Firestore ルールはメンバー全員に delete を許す
+  // （prune 兼用）ため、ガードはここでのみ行う。
+  const handleDeleteChat = async (c) => {
+    const myCheckId = isFsTeam ? myUid : me.id
+    if (!c || c.userId !== myCheckId) return
+    if (!confirm('このメッセージを削除しますか？')) return
+    if (isFsTeam) {
+      // 楽観的に消す
+      setChatItems((prev) => prev.filter((m) => m.id !== c.id))
+      const ok = await deleteFsChatMessage(myTeam.id, c.id)
+      if (!ok) {
+        alert('削除に失敗しました。再度お試しください。')
+      }
+    } else {
+      chats.delete(c.id)
+    }
+  }
+
   const submitChat = async () => {
     const content = chatInput.trim()
     if (!content) return
@@ -785,16 +804,28 @@ export default function TeamScreen() {
                     </div>
                     <div className="chat-bubble">{c.content}</div>
                   </div>
-                  <button
-                    type="button"
-                    className={`like-btn ${liked ? 'liked' : ''}`}
-                    onClick={() => handleLikeChat(c.id)}
-                    aria-pressed={liked}
-                    aria-label="いいね"
-                  >
-                    <span className="like-icon" aria-hidden>{liked ? '♥' : '♡'}</span>
-                    {likeCount > 0 && <span className="like-count">{likeCount}</span>}
-                  </button>
+                  <div className="chat-actions">
+                    <button
+                      type="button"
+                      className={`like-btn ${liked ? 'liked' : ''}`}
+                      onClick={() => handleLikeChat(c.id)}
+                      aria-pressed={liked}
+                      aria-label="いいね"
+                    >
+                      <span className="like-icon" aria-hidden>{liked ? '♥' : '♡'}</span>
+                      {likeCount > 0 && <span className="like-count">{likeCount}</span>}
+                    </button>
+                    {isMine && (
+                      <button
+                        type="button"
+                        className="chat-delete-btn"
+                        onClick={() => handleDeleteChat(c)}
+                        aria-label="メッセージを削除"
+                      >
+                        🗑
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
