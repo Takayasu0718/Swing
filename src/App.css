@@ -2175,6 +2175,33 @@ body.has-baseball-bg .screen-title {
   line-height: 1.1;
 }
 
+/* 100% 達成時の虹色グラデーション + 流れるアニメーション */
+.achievement-value.rainbow {
+  background: linear-gradient(
+    90deg,
+    #ef4444,
+    #f59e0b,
+    #eab308,
+    #22c55e,
+    #06b6d4,
+    #3b82f6,
+    #a855f7,
+    #ef4444
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: rainbow-flow 3s linear infinite;
+  text-shadow: 0 0 6px rgba(168, 85, 247, 0.3);
+}
+
+@keyframes rainbow-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+
 /* ================ Contact (mailto link as button) ================ */
 .contact-btn {
   display: block;

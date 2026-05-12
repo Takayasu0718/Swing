@@ -707,17 +707,23 @@ export default function TeamScreen() {
         const stats = isFsTeam
           ? fsTeamStats
           : computeLocalTeamAchievementStats(statsMembers)
+        const todayPct = Math.round(stats.todayRate * 100)
+        const weekPct = Math.round(stats.weekRate * 100)
         return (
           <section className="info-card">
             <div className="card-title">チーム達成率</div>
             <div className="achievement-row">
               <div className="achievement-stat">
                 <div className="achievement-label">本日</div>
-                <div className="achievement-value">{Math.round(stats.todayRate * 100)}%</div>
+                <div className={`achievement-value ${todayPct === 100 ? 'rainbow' : ''}`}>
+                  {todayPct}%
+                </div>
               </div>
               <div className="achievement-stat">
                 <div className="achievement-label">直近7日</div>
-                <div className="achievement-value">{Math.round(stats.weekRate * 100)}%</div>
+                <div className={`achievement-value ${weekPct === 100 ? 'rainbow' : ''}`}>
+                  {weekPct}%
+                </div>
               </div>
             </div>
           </section>
