@@ -2146,6 +2146,19 @@ body.has-baseball-bg .screen-title {
   color: var(--slate-900);
 }
 
+/* ================ Contact (mailto link as button) ================ */
+.contact-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 0.6rem;
+  box-sizing: border-box;
+}
+
+.contact-btn:hover {
+  text-decoration: none;
+}
+
 /* ================ Login ================ */
 .login-screen {
   padding-top: 2rem;

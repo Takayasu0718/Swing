@@ -361,6 +361,19 @@ export default function GuardianScreen({ onNavigate, onOpenLegal }) {
           </button>
         </div>
       </section>
+
+      <section className="info-card">
+        <div className="card-title">お問い合わせ</div>
+        <div className="empty-txt">
+          ご質問・不具合報告・ご要望は下記からメールでお寄せください。
+        </div>
+        <a
+          className="outline-btn contact-btn"
+          href="mailto:t.sasaki@tishiki.tech?subject=Swing%20お問い合わせ"
+        >
+          お問い合わせはこちら
+        </a>
+      </section>
     </div>
   )
 }
