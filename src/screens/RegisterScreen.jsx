@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { users, session } from '../storage/storage.js'
-import { STAMPS } from '../storage/stamps.js'
+import { STAMPS, getStampsForRole } from '../storage/stamps.js'
 import { ROLES, DAILY_GOAL_OPTIONS, USER_ID_REGEX, USER_ID_RULE } from '../storage/schema.js'
 import { onGoalRaised } from '../lib/events.js'
 import { auth, authReady } from '../lib/firebase.js'
@@ -22,6 +22,18 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const [teamName, setTeamName] = useState(current?.teamName ?? '')
   const [avatarStamp, setAvatarStamp] = useState(current?.avatarStamp ?? STAMPS[0].id)
   const [role, setRole] = useState(current?.role ?? ROLES.PLAYER)
+  // role に応じて表示するスタンプ群を切替。
+  const availableStamps = getStampsForRole(role)
+  // role 変更時、現在の avatarStamp が新ロールの候補外なら先頭にリセット。
+  // 副作用を effect ではなく role 変更時のハンドラ内で実行することで、
+  // synchronous setState in effect の警告を回避。
+  const handleRoleChange = (nextRole) => {
+    setRole(nextRole)
+    const allowed = getStampsForRole(nextRole)
+    if (!allowed.some((s) => s.id === avatarStamp)) {
+      setAvatarStamp(allowed[0]?.id || '')
+    }
+  }
   const [dailyGoal, setDailyGoal] = useState(current?.dailyGoal ?? 50)
   const [advice, setAdvice] = useState(current?.advice ?? '')
   const [error, setError] = useState('')
@@ -171,7 +183,7 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
           プロフィール画像 <span className="req">*</span>
         </span>
         <div className="stamp-grid">
-          {STAMPS.map((s) => (
+          {availableStamps.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -193,21 +205,21 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
           <button
             type="button"
             className={`role-btn ${role === ROLES.PLAYER ? 'active' : ''}`}
-            onClick={() => setRole(ROLES.PLAYER)}
+            onClick={() => handleRoleChange(ROLES.PLAYER)}
           >
             選手
           </button>
           <button
             type="button"
             className={`role-btn ${role === ROLES.COACH ? 'active' : ''}`}
-            onClick={() => setRole(ROLES.COACH)}
+            onClick={() => handleRoleChange(ROLES.COACH)}
           >
             監督・コーチ
           </button>
           <button
             type="button"
             className={`role-btn ${role === ROLES.TRIAL ? 'active' : ''}`}
-            onClick={() => setRole(ROLES.TRIAL)}
+            onClick={() => handleRoleChange(ROLES.TRIAL)}
           >
             体験
           </button>
