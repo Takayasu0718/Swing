@@ -250,9 +250,24 @@ function AppShell() {
     )
   }
   if (authUid === null) {
+    // 未ログイン状態でも terms/privacy は閲覧可能（サインアップ前の同意のため）
+    if (tab === 'terms') {
+      return (
+        <div className="app-root">
+          <TermsScreen onBack={backFromLegal} />
+        </div>
+      )
+    }
+    if (tab === 'privacy') {
+      return (
+        <div className="app-root">
+          <PrivacyScreen onBack={backFromLegal} />
+        </div>
+      )
+    }
     return (
       <div className="app-root">
-        <LoginScreen />
+        <LoginScreen onOpenLegal={navigateLegal} />
       </div>
     )
   }
@@ -267,13 +282,7 @@ function AppShell() {
   let screen
   switch (activeTab) {
     case 'register':
-      screen = (
-        <RegisterScreen
-          onDone={() => setTab('home')}
-          needsUserIdSetup={needsUserIdSetup}
-          onOpenLegal={navigateLegal}
-        />
-      )
+      screen = <RegisterScreen onDone={() => setTab('home')} needsUserIdSetup={needsUserIdSetup} />
       break
     case 'home':
       screen = <HomeScreen />

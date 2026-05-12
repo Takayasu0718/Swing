@@ -22,13 +22,15 @@ function translateError(e) {
   return e.message || '不明なエラーが発生しました'
 }
 
-export default function LoginScreen() {
+export default function LoginScreen({ onOpenLegal }) {
   const [mode, setMode] = useState('signin') // 'signin' | 'signup' | 'reset'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // サインアップ時のみ必須となる規約・プライバシーポリシー同意。
+  const [agreedLegal, setAgreedLegal] = useState(false)
 
   const trimmedEmail = email.trim()
 
@@ -41,6 +43,9 @@ export default function LoginScreen() {
       if (!password) return setError('パスワードを入力してください')
       if (mode === 'signup' && password.length < 6) {
         return setError('パスワードは6文字以上にしてください')
+      }
+      if (mode === 'signup' && !agreedLegal) {
+        return setError('利用規約・プライバシーポリシーに同意してください')
       }
     }
     setSubmitting(true)
@@ -99,11 +104,43 @@ export default function LoginScreen() {
           </label>
         )}
 
+        {mode === 'signup' && (
+          <label className="legal-consent-row">
+            <input
+              type="checkbox"
+              checked={agreedLegal}
+              onChange={(e) => setAgreedLegal(e.target.checked)}
+            />
+            <span className="legal-consent-text">
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => onOpenLegal?.('terms')}
+              >
+                利用規約
+              </button>
+              ・
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => onOpenLegal?.('privacy')}
+              >
+                プライバシーポリシー
+              </button>
+              に同意します
+            </span>
+          </label>
+        )}
+
         {error && <div className="form-error">{error}</div>}
         {info && <div className="form-info">{info}</div>}
 
         <div className="btn-row">
-          <button className="submit" onClick={submit} disabled={submitting}>
+          <button
+            className="submit"
+            onClick={submit}
+            disabled={submitting || (mode === 'signup' && !agreedLegal)}
+          >
             {submitting
               ? '送信中…'
               : mode === 'signup'

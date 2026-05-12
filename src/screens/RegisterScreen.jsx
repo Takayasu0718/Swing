@@ -9,7 +9,7 @@ import { syncUserProfile } from '../lib/firestoreSync.js'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 
-export default function RegisterScreen({ onDone, needsUserIdSetup = false, onOpenLegal }) {
+export default function RegisterScreen({ onDone, needsUserIdSetup = false }) {
   const current = users.getCurrent()
   const isEdit = !!current
   const { myUid, friendships: fsFriendships, refreshAllUsers } = useFirestoreFriends()
@@ -26,13 +26,10 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false, onOpe
   const [advice, setAdvice] = useState(current?.advice ?? '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  // 規約・プライバシーポリシー同意。編集時（既登録ユーザー）は再同意不要。
-  const [agreedLegal, setAgreedLegal] = useState(isEdit)
 
   const submit = async () => {
     if (submitting) return
     setError('')
-    if (!agreedLegal) return setError('利用規約・プライバシーポリシーに同意してください')
     if (!nickname.trim()) return setError('ニックネームを入力してください')
     const trimmedUserId = userId.trim()
     if (!trimmedUserId) return setError('ユーザーIDを入力してください')
@@ -270,41 +267,9 @@ export default function RegisterScreen({ onDone, needsUserIdSetup = false, onOpe
         </label>
       )}
 
-      {!isEdit && (
-        <label className="legal-consent-row">
-          <input
-            type="checkbox"
-            checked={agreedLegal}
-            onChange={(e) => setAgreedLegal(e.target.checked)}
-          />
-          <span className="legal-consent-text">
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => onOpenLegal?.('terms')}
-            >
-              利用規約
-            </button>
-            ・
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => onOpenLegal?.('privacy')}
-            >
-              プライバシーポリシー
-            </button>
-            に同意します
-          </span>
-        </label>
-      )}
-
       {error && <div className="error">{error}</div>}
 
-      <button
-        className="submit"
-        onClick={submit}
-        disabled={submitting || (!isEdit && !agreedLegal)}
-      >
+      <button className="submit" onClick={submit} disabled={submitting}>
         {isEdit ? '保存する' : 'はじめる'}
       </button>
     </div>
