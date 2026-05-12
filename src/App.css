@@ -2146,6 +2146,35 @@ body.has-baseball-bg .screen-title {
   color: var(--slate-900);
 }
 
+/* ================ Team Achievement ================ */
+.achievement-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.achievement-stat {
+  flex: 1;
+  background: var(--blue-50);
+  border-radius: 12px;
+  padding: 0.7rem 0.6rem;
+  text-align: center;
+}
+
+.achievement-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--blue-700);
+  margin-bottom: 0.25rem;
+}
+
+.achievement-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  line-height: 1.1;
+}
+
 /* ================ Contact (mailto link as button) ================ */
 .contact-btn {
   display: block;

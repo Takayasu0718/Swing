@@ -44,11 +44,41 @@ import {
   setTrialRequest,
   deleteTrialRequest,
 } from '../lib/firestoreTrialRequests.js'
-import { loadFriendRanking } from '../lib/firestoreRanking.js'
+import { loadFriendRanking, loadTeamAchievementStats } from '../lib/firestoreRanking.js'
+import { todayKey } from '../lib/date.js'
 
 const CHAT_INITIAL = 5
 const CHAT_STEP = 10
 const CHAT_MAX = 15
+
+// ローカルチーム用のチーム達成率（本日 / 直近7日）。
+// 同一日の missions が重複していてもユニーク日数で集計。
+function computeLocalTeamAchievementStats(members) {
+  if (!members || members.length === 0) return { todayRate: 0, weekRate: 0 }
+  const today = todayKey()
+  const since = Date.now() - 7 * 24 * 3600 * 1000
+  let todayAchievers = 0
+  let weekAchievements = 0
+  for (const m of members) {
+    const list = missions.listByUser(m.id).filter((x) => x.completed)
+    const dates = new Set()
+    for (const mission of list) {
+      const dateKey = mission.date || ''
+      if (!dateKey) continue
+      const ts = mission.approvedAt
+        ? new Date(mission.approvedAt).getTime()
+        : new Date(`${dateKey}T12:00:00`).getTime()
+      if (ts >= since) dates.add(dateKey)
+    }
+    if (dates.has(today)) todayAchievers += 1
+    weekAchievements += dates.size
+  }
+  const n = members.length
+  return {
+    todayRate: todayAchievers / n,
+    weekRate: weekAchievements / (n * 7),
+  }
+}
 
 function computeTeamRanking(members) {
   const since = Date.now() - 7 * 24 * 3600 * 1000
@@ -137,6 +167,9 @@ export default function TeamScreen() {
     }
   }, [myFsTeam?.id])
 
+  // FS チームの達成率（本日 / 直近7日）
+  const [fsTeamStats, setFsTeamStats] = useState({ todayRate: 0, weekRate: 0 })
+
   // FS チームのランキング: users/{uid}/activities から直近7日の swing 数を集計
   const fsRankingMemberKey = (myFsTeam?.memberIds || []).join(',')
   useEffect(() => {
@@ -154,6 +187,9 @@ export default function TeamScreen() {
     let cancelled = false
     loadFriendRanking(memberUids, profiles).then((list) => {
       if (!cancelled) setFsTeamRanking(list)
+    })
+    loadTeamAchievementStats(memberUids).then((stats) => {
+      if (!cancelled) setFsTeamStats(stats)
     })
     return () => {
       cancelled = true
@@ -663,6 +699,30 @@ export default function TeamScreen() {
           setEditingTeam(false)
         }}
       />
+
+      {(() => {
+        // 達成率セクション: FS チームは fsTeamStats、ローカルは inline で算出。
+        // 体験ロールは分母から除外（ランキングと同方針）。
+        const statsMembers = members.filter((m) => m.role !== ROLES.TRIAL)
+        const stats = isFsTeam
+          ? fsTeamStats
+          : computeLocalTeamAchievementStats(statsMembers)
+        return (
+          <section className="info-card">
+            <div className="card-title">チーム達成率</div>
+            <div className="achievement-row">
+              <div className="achievement-stat">
+                <div className="achievement-label">本日</div>
+                <div className="achievement-value">{Math.round(stats.todayRate * 100)}%</div>
+              </div>
+              <div className="achievement-stat">
+                <div className="achievement-label">直近7日</div>
+                <div className="achievement-value">{Math.round(stats.weekRate * 100)}%</div>
+              </div>
+            </div>
+          </section>
+        )
+      })()}
 
       {(() => {
         // FS チームは Firestore activities ベース、ローカルチームは localStorage missions ベース
