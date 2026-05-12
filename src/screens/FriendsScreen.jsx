@@ -15,6 +15,7 @@ import { useProfile } from '../hooks/useProfile.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { toggleFsActivityLike, fetchRecentActivitiesByUids } from '../lib/firestoreActivities.js'
+import { loadFriendRanking } from '../lib/firestoreRanking.js'
 
 const FEED_INITIAL = 15
 const FEED_STEP = 15
@@ -39,6 +40,30 @@ export default function FriendsScreen() {
     .map((f) => f.participants?.find((p) => p !== myUid))
     .filter(Boolean)
   const feedWatchedKey = useMemo(() => [...feedFriendUids].sort().join(','), [feedFriendUids])
+
+  // フレンドランキング（直近7日 / 素振り合計）。自分 + 受理済みフレンドが対象。
+  const [ranking, setRanking] = useState([])
+  useEffect(() => {
+    if (!myUid) return undefined
+    const uids = [myUid, ...feedFriendUids]
+    const me = users.getCurrent()
+    const profiles = {}
+    if (me) {
+      profiles[myUid] = { nickname: me.nickname, avatarStamp: me.avatarStamp }
+    }
+    for (const uid of feedFriendUids) {
+      const u = usersByUid[uid]
+      if (u) profiles[uid] = { nickname: u.nickname, avatarStamp: u.avatarStamp }
+    }
+    let cancelled = false
+    loadFriendRanking(uids, profiles).then((result) => {
+      if (!cancelled) setRanking(result)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUid, feedWatchedKey])
 
   // フレンドが変わった / 画面マウント時のみ初回 15 件を 1 回だけ取得。
   // onSnapshot は使わないので、いいね等のリアルタイム反映は楽観的更新で対応。
@@ -339,6 +364,64 @@ export default function FriendsScreen() {
       )}
 
       <section className="info-card">
+        <div className="card-title">フレンドのアクティビティ</div>
+        {feed.length === 0 ? (
+          <EmptyState
+            icon="✨"
+            title="アクティビティはまだありません"
+            description="フレンドが素振りを達成するとここに表示されます"
+          />
+        ) : (
+          <>
+            <div className="activity-list">
+              {feed.map((a) => (
+                <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLike} />
+              ))}
+            </div>
+            {canLoadMore && (
+              <button
+                type="button"
+                className="outline-btn"
+                style={{ marginTop: '0.6rem' }}
+                onClick={handleLoadMore}
+                disabled={feedLoading}
+              >
+                {feedLoading ? '読み込み中…' : 'もっと見る'}
+              </button>
+            )}
+          </>
+        )}
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">フレンドランキング（直近7日 / 素振り合計）</div>
+        {ranking.length === 0 || ranking.every((r) => r.totalSwing === 0) ? (
+          <EmptyState
+            icon="🏆"
+            title="まだランキングデータがありません"
+            description="フレンドと一緒に素振りを記録するとここに表示されます"
+          />
+        ) : (
+          <ol className="ranking-list">
+            {ranking.map((r, i) => (
+              <li
+                key={r.uid}
+                className={`ranking-row ${r.uid === myUid ? 'me' : ''} clickable`}
+                onClick={() => openProfile(r.uid)}
+              >
+                <span className={`ranking-rank rank-${i + 1}`}>{i + 1}</span>
+                <span className="activity-stamp" aria-hidden>
+                  <img src={getStamp(r.avatarStamp).image} alt="" />
+                </span>
+                <span className="ranking-name">{r.nickname}</span>
+                <span className="ranking-count">{r.totalSwing}回</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      <section className="info-card">
         <div className="card-title">フレンド（{friends.length + fsAcceptedFriends.length}）</div>
         {friends.length === 0 && fsAcceptedFriends.length === 0 ? (
           <EmptyState
@@ -374,36 +457,6 @@ export default function FriendsScreen() {
               </li>
             ))}
           </ul>
-        )}
-      </section>
-
-      <section className="info-card">
-        <div className="card-title">フレンドのアクティビティ</div>
-        {feed.length === 0 ? (
-          <EmptyState
-            icon="✨"
-            title="アクティビティはまだありません"
-            description="フレンドが素振りを達成するとここに表示されます"
-          />
-        ) : (
-          <>
-            <div className="activity-list">
-              {feed.map((a) => (
-                <ActivityItem key={a.id} activity={a} currentUserId={me.id} onLike={handleLike} />
-              ))}
-            </div>
-            {canLoadMore && (
-              <button
-                type="button"
-                className="outline-btn"
-                style={{ marginTop: '0.6rem' }}
-                onClick={handleLoadMore}
-                disabled={feedLoading}
-              >
-                {feedLoading ? '読み込み中…' : 'もっと見る'}
-              </button>
-            )}
-          </>
         )}
       </section>
     </div>
