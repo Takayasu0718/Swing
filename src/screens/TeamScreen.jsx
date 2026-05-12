@@ -664,25 +664,6 @@ export default function TeamScreen() {
         }}
       />
 
-      <section className="info-card">
-        <div className="card-title">メンバー（{members.length}）</div>
-        <ul className="friend-chips">
-          {members.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                className="friend-chip"
-                onClick={() => openProfile(m.id)}
-              >
-                <span className="activity-stamp" aria-hidden><img src={getStamp(m.avatarStamp).image} alt="" /></span>
-                <span className="activity-name">{m.nickname}</span>
-                {m.id === myTeam.captainId && <span className="captain-tag">C</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       {(() => {
         // FS チームは Firestore activities ベース、ローカルチームは localStorage missions ベース
         const teamRanking = isFsTeam
@@ -894,6 +875,25 @@ export default function TeamScreen() {
           setEditingMatchId(null)
         }}
       />
+
+      <section className="info-card">
+        <div className="card-title">メンバー（{members.length}）</div>
+        <ul className="friend-chips">
+          {members.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                className="friend-chip"
+                onClick={() => openProfile(m.id)}
+              >
+                <span className="activity-stamp" aria-hidden><img src={getStamp(m.avatarStamp).image} alt="" /></span>
+                <span className="activity-name">{m.nickname}</span>
+                {m.id === myTeam.captainId && <span className="captain-tag">C</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="info-card">
         <div className="card-title">フレンドチーム（{friendTeams.length}）</div>
