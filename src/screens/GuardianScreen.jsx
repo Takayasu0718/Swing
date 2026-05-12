@@ -22,7 +22,7 @@ import {
 } from '../lib/firestoreTrialRequests.js'
 import { fetchMyConversations } from '../lib/firestoreDms.js'
 
-export default function GuardianScreen({ onNavigate }) {
+export default function GuardianScreen({ onNavigate, onOpenLegal }) {
   const [syncedAt, setSyncedAt] = useState(null)
   const { myUid, myFsTeam } = useFirestoreTeams()
   const { allUsers } = useFirestoreFriends()
@@ -348,6 +348,18 @@ export default function GuardianScreen({ onNavigate }) {
         <button className="danger-btn" onClick={resetAll}>
           すべてのデータをリセット
         </button>
+      </section>
+
+      <section className="info-card">
+        <div className="card-title">規約・ポリシー</div>
+        <div className="btn-row">
+          <button className="outline-btn" onClick={() => onOpenLegal?.('terms')}>
+            利用規約
+          </button>
+          <button className="outline-btn" onClick={() => onOpenLegal?.('privacy')}>
+            プライバシーポリシー
+          </button>
+        </div>
       </section>
     </div>
   )

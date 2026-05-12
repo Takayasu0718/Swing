@@ -15,6 +15,8 @@ import {
 } from './lib/firestoreTrialRequests.js'
 import LoginScreen from './screens/LoginScreen.jsx'
 import RegisterScreen from './screens/RegisterScreen.jsx'
+import TermsScreen from './screens/TermsScreen.jsx'
+import PrivacyScreen from './screens/PrivacyScreen.jsx'
 import HomeScreen from './screens/HomeScreen.jsx'
 import NotificationScreen from './screens/NotificationScreen.jsx'
 import FriendsScreen from './screens/FriendsScreen.jsx'
@@ -101,9 +103,23 @@ function AppShell() {
   // または対応する authUid で fetch 済み。
   const profileChecked =
     authUid === null || !!current || profileFetchedFor === authUid
+
   const [tab, setTab] = useState('home')
+  // 規約系画面（terms/privacy）から戻る時の遷移元を保持。
+  // 登録画面・設定画面どちらから来ても適切に戻せる。
+  const [previousTab, setPreviousTab] = useState(null)
+  const navigateLegal = (legalKey) => {
+    setPreviousTab(tab)
+    setTab(legalKey)
+  }
+  const backFromLegal = () => {
+    setTab(previousTab || 'guardian')
+    setPreviousTab(null)
+  }
   const needsUserIdSetup = !!current && !current.userId
-  const activeTab = !current || needsUserIdSetup ? 'register' : tab
+  // 規約系（terms/privacy）は profile 未完成でも閲覧可能。それ以外は登録に矯正。
+  const isLegalTab = tab === 'terms' || tab === 'privacy'
+  const activeTab = isLegalTab ? tab : (!current || needsUserIdSetup ? 'register' : tab)
   const { unread: fsUnread, myUid } = useFirestoreNotifications()
   const { partnerUid: openDmPartner } = useDm()
   const { myFsTeam } = useFirestoreTeams()
@@ -251,7 +267,13 @@ function AppShell() {
   let screen
   switch (activeTab) {
     case 'register':
-      screen = <RegisterScreen onDone={() => setTab('home')} needsUserIdSetup={needsUserIdSetup} />
+      screen = (
+        <RegisterScreen
+          onDone={() => setTab('home')}
+          needsUserIdSetup={needsUserIdSetup}
+          onOpenLegal={navigateLegal}
+        />
+      )
       break
     case 'home':
       screen = <HomeScreen />
@@ -266,7 +288,13 @@ function AppShell() {
       screen = <TeamScreen />
       break
     case 'guardian':
-      screen = <GuardianScreen onNavigate={setTab} />
+      screen = <GuardianScreen onNavigate={setTab} onOpenLegal={navigateLegal} />
+      break
+    case 'terms':
+      screen = <TermsScreen onBack={backFromLegal} />
+      break
+    case 'privacy':
+      screen = <PrivacyScreen onBack={backFromLegal} />
       break
     default:
       screen = <HomeScreen />
