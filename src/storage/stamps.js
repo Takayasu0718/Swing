@@ -10,11 +10,10 @@ import girlCheer from '../assets/avatars/girl_cheer.png'
 import girlWink from '../assets/avatars/girl_wink.png'
 import girlFire from '../assets/avatars/girl_fire.png'
 import girlFocus from '../assets/avatars/girl_focus.png'
-import coachMaleCheer from '../assets/avatars/coach_male_cheer.png'
-import coachMaleCool from '../assets/avatars/coach_male_cool.png'
-import coachMaleSenior from '../assets/avatars/coach_male_senior.png'
-import coachFemaleCheer from '../assets/avatars/coach_female_cheer.png'
-import coachFemaleSenior from '../assets/avatars/coach_female_senior.png'
+import coachSeniorStrict from '../assets/avatars/coach_senior_strict.png'
+import coachSeniorFriendly from '../assets/avatars/coach_senior_friendly.png'
+import coachYoung from '../assets/avatars/coach_young.png'
+import coachFemale from '../assets/avatars/coach_female.png'
 
 const PLAYER_ROLES = ['player', 'trial']
 const COACH_ROLES = ['coach']
@@ -28,11 +27,10 @@ export const STAMPS = [
   { id: 'girl_wink', image: girlWink, label: '⚾', name: '女の子・黒髪', roles: PLAYER_ROLES },
   { id: 'girl_fire', image: girlFire, label: '⚾', name: '女の子・金髪', roles: PLAYER_ROLES },
   { id: 'girl_focus', image: girlFocus, label: '⚾', name: '女の子・青髪', roles: PLAYER_ROLES },
-  { id: 'coach_male_cheer', image: coachMaleCheer, label: '📣', name: 'コーチ・男性（元気）', roles: COACH_ROLES },
-  { id: 'coach_male_cool', image: coachMaleCool, label: '😎', name: 'コーチ・男性（クール）', roles: COACH_ROLES },
-  { id: 'coach_male_senior', image: coachMaleSenior, label: '👴', name: 'コーチ・男性（ベテラン）', roles: COACH_ROLES },
-  { id: 'coach_female_cheer', image: coachFemaleCheer, label: '📣', name: 'コーチ・女性（元気）', roles: COACH_ROLES },
-  { id: 'coach_female_senior', image: coachFemaleSenior, label: '😎', name: 'コーチ・女性（ベテラン）', roles: COACH_ROLES },
+  { id: 'coach_senior_strict', image: coachSeniorStrict, label: '👴', name: 'ベテラン監督（厳格）', roles: COACH_ROLES },
+  { id: 'coach_senior_friendly', image: coachSeniorFriendly, label: '👴', name: 'ベテラン監督（温和）', roles: COACH_ROLES },
+  { id: 'coach_young', image: coachYoung, label: '🔥', name: '若手コーチ（熱血）', roles: COACH_ROLES },
+  { id: 'coach_female', image: coachFemale, label: '💪', name: '女性コーチ', roles: COACH_ROLES },
 ]
 
 export function getStamp(id) {
