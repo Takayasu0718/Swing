@@ -20,14 +20,14 @@ const PLAYER_ROLES = ['player', 'trial']
 const COACH_ROLES = ['coach']
 
 export const STAMPS = [
-  { id: 'boy_cheer', image: boyCheer, label: '🙌', name: '男の子・ガッツポーズ', roles: PLAYER_ROLES },
-  { id: 'boy_wink', image: boyWink, label: '👍', name: '男の子・ウインク', roles: PLAYER_ROLES },
-  { id: 'boy_fire', image: boyFire, label: '🔥', name: '男の子・気合', roles: PLAYER_ROLES },
-  { id: 'boy_focus', image: boyFocus, label: '🙏', name: '男の子・集中', roles: PLAYER_ROLES },
-  { id: 'girl_cheer', image: girlCheer, label: '🙌', name: '女の子・ガッツポーズ', roles: PLAYER_ROLES },
-  { id: 'girl_wink', image: girlWink, label: '👍', name: '女の子・ウインク', roles: PLAYER_ROLES },
-  { id: 'girl_fire', image: girlFire, label: '🔥', name: '女の子・気合', roles: PLAYER_ROLES },
-  { id: 'girl_focus', image: girlFocus, label: '🙏', name: '女の子・集中', roles: PLAYER_ROLES },
+  { id: 'boy_cheer', image: boyCheer, label: '⚾', name: '男の子・茶髪', roles: PLAYER_ROLES },
+  { id: 'boy_wink', image: boyWink, label: '⚾', name: '男の子・茶髪（強気）', roles: PLAYER_ROLES },
+  { id: 'boy_fire', image: boyFire, label: '⚾', name: '男の子・青髪', roles: PLAYER_ROLES },
+  { id: 'boy_focus', image: boyFocus, label: '⚾', name: '男の子・金髪', roles: PLAYER_ROLES },
+  { id: 'girl_cheer', image: girlCheer, label: '⚾', name: '女の子・茶髪', roles: PLAYER_ROLES },
+  { id: 'girl_wink', image: girlWink, label: '⚾', name: '女の子・黒髪', roles: PLAYER_ROLES },
+  { id: 'girl_fire', image: girlFire, label: '⚾', name: '女の子・金髪', roles: PLAYER_ROLES },
+  { id: 'girl_focus', image: girlFocus, label: '⚾', name: '女の子・青髪', roles: PLAYER_ROLES },
   { id: 'coach_male_cheer', image: coachMaleCheer, label: '📣', name: 'コーチ・男性（元気）', roles: COACH_ROLES },
   { id: 'coach_male_cool', image: coachMaleCool, label: '😎', name: 'コーチ・男性（クール）', roles: COACH_ROLES },
   { id: 'coach_male_senior', image: coachMaleSenior, label: '👴', name: 'コーチ・男性（ベテラン）', roles: COACH_ROLES },
