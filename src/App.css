@@ -1172,33 +1172,110 @@ body.has-baseball-bg .screen-title {
   color: var(--slate-700);
   font-weight: 700;
   line-height: 1.2;
-  margin-bottom: 0.1rem;
+  margin-bottom: 0.2rem;
   word-break: break-word;
 }
 
-.dragon-level {
-  font-size: 1.85rem;
+/* ゲーム風 LEVEL 表示: 小さい LEVEL ラベル + 大きいグラデ数字 */
+.dragon-level-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0.45rem;
+  line-height: 1;
+}
+
+.dragon-level-label {
+  font-size: 0.72rem;
   font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--blue-500, #3b82f6);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.dragon-level-num {
+  font-size: 2.05rem;
+  font-weight: 900;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  filter: drop-shadow(0 1px 1px rgba(29, 78, 216, 0.18));
+}
+
+.dragon-level-max {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  margin-left: 0.2rem;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);
+}
+
+/* EXP ゲージ */
+.dragon-exp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dragon-exp-bar {
+  position: relative;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.dragon-exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #3b82f6 55%, #1d4ed8 100%);
+  border-radius: 999px;
+  box-shadow:
+    0 0 8px rgba(59, 130, 246, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  min-width: 0;
+}
+
+.dragon-exp-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, transparent 100%);
+  border-radius: 999px 999px 0 0;
+  pointer-events: none;
+}
+
+.dragon-exp-text {
+  font-size: 0.8rem;
+  color: var(--slate-600, #475569);
+  line-height: 1.2;
+}
+
+.dragon-exp-text b {
   color: var(--blue-700);
-  line-height: 1.05;
-  margin: 0.15rem 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
-.dragon-stage {
-  font-size: 0.85rem;
-  color: var(--blue-500);
-  font-weight: 600;
-  margin-left: 0.3rem;
-}
-
-.dragon-next {
-  font-size: 0.85rem;
-  color: var(--slate-700);
-}
-
-.dragon-next b {
-  color: var(--blue-700);
-  font-size: 1rem;
+@media (max-width: 480px) {
+  .dragon-level-num {
+    font-size: 1.8rem;
+  }
 }
 
 /* ================ Mission ================ */

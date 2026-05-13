@@ -3,7 +3,7 @@ import { users, missions, teams, settings } from '../storage/storage.js'
 import { ROLES, BATTING_STATUS_KEYS, BATTING_STATUS_MAX } from '../storage/schema.js'
 import { getStamp } from '../storage/stamps.js'
 import { todayKey, computeStreak, countAchievementDays, computeLongestStreak } from '../lib/date.js'
-import { levelFromProgress, daysUntilNextLevel } from '../lib/dragon.js'
+import { levelFromProgress, daysUntilNextLevel, MAX_DRAGON_LEVEL } from '../lib/dragon.js'
 import { onMissionApproved } from '../lib/events.js'
 import { useProfile } from '../hooks/useProfile.jsx'
 import { auth } from '../lib/firebase.js'
@@ -265,8 +265,37 @@ export default function HomeScreen() {
           </span>
           <div className="dragon-info">
             <div className="dragon-name">{user.nickname}</div>
-            <div className="dragon-level">Lv.{level}</div>
-            <div className="dragon-next">次のレベルまで あと <b>{daysToNext}</b> 日</div>
+            <div className="dragon-level-row">
+              <span className="dragon-level-label">LEVEL</span>
+              <span className="dragon-level-num">{level}</span>
+              {level >= MAX_DRAGON_LEVEL && <span className="dragon-level-max">MAX</span>}
+            </div>
+            <div className="dragon-exp">
+              <div
+                className="dragon-exp-bar"
+                role="progressbar"
+                aria-valuenow={level >= MAX_DRAGON_LEVEL ? 100 : Math.round(((3 - daysToNext) / 3) * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="dragon-exp-fill"
+                  style={{
+                    width:
+                      level >= MAX_DRAGON_LEVEL
+                        ? '100%'
+                        : `${Math.max(0, Math.min(100, ((3 - daysToNext) / 3) * 100))}%`,
+                  }}
+                />
+              </div>
+              <div className="dragon-exp-text">
+                {level >= MAX_DRAGON_LEVEL ? (
+                  '最大レベル到達！'
+                ) : (
+                  <>あと <b>{daysToNext}</b> 日でレベルアップ</>
+                )}
+              </div>
+            </div>
           </div>
         </section>
       )}
