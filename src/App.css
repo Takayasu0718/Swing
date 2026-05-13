@@ -1007,29 +1007,48 @@ body.has-baseball-bg .screen-title {
 }
 
 .dragon-img {
-  width: 140px;
-  height: 140px;
+  width: 168px;
+  height: 168px;
   flex-shrink: 0;
   object-fit: contain;
 }
 
+/* ホーム画面のプロフィールカード内アバター: キャラの存在感を強める。
+   - 円形フレーム拡大 + ソフトシャドウで浮き上がり感
+   - object-position を上寄せ + transform: scale で顔〜上半身を強調
+   - overflow:hidden の枠内に収めつつズーム表示で「はみ出して見える」演出
+   - スマホ幅では一回り小さく */
 .dragon-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 6.5rem;
+  font-size: 7rem;
   line-height: 1;
-  background: var(--blue-50);
+  background: linear-gradient(180deg, var(--blue-50) 0%, #e7efff 100%);
   border: 2px solid var(--blue-100);
   border-radius: 50%;
   overflow: hidden;
+  box-shadow:
+    0 6px 18px rgba(29, 78, 216, 0.16),
+    inset 0 -8px 14px rgba(29, 78, 216, 0.05);
+  position: relative;
 }
 
 .dragon-avatar img {
-  width: 100%;
-  height: 100%;
+  width: 116%;
+  height: 116%;
+  max-width: none;
   object-fit: cover;
+  object-position: center 12%;
   display: block;
+}
+
+@media (max-width: 480px) {
+  .dragon-img,
+  .dragon-avatar {
+    width: 136px;
+    height: 136px;
+  }
 }
 
 /* スタンプ画像表示の共通ルール（emoji span 内に img を入れる方式） */
@@ -1100,17 +1119,20 @@ body.has-baseball-bg .screen-title {
 }
 
 .dragon-name {
-  font-size: 0.8rem;
-  color: var(--slate-500);
-  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--slate-700);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.1rem;
+  word-break: break-word;
 }
 
 .dragon-level {
-  font-size: 1.6rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: var(--blue-700);
-  line-height: 1.1;
-  margin: 0.2rem 0;
+  line-height: 1.05;
+  margin: 0.15rem 0 0.35rem;
 }
 
 .dragon-stage {
