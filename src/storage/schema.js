@@ -116,7 +116,7 @@ export const BATTING_STATUS_KEYS = Object.freeze([
   { key: 'speed', label: 'スイングスピード強化' },
   { key: 'lowerBody', label: '下半身意識' },
   { key: 'course', label: 'コース意識' },
-  { key: 'timing', label: 'タイミング意識' },
+  { key: 'timing', label: 'ミート意識' },
   { key: 'custom', label: '' }, // user-defined; falls back to customStatusLabel
 ])
 
