@@ -267,14 +267,58 @@ body.has-baseball-bg .screen-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  /* キャラ画像が枠より大きく描かれるので、はみ出しを切り詰める */
+  overflow: hidden;
+  /* タップ時の触覚的反応を transform で表現 */
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
+    background 0.18s ease;
   padding: 0;
+  position: relative;
 }
 
+.stamp-btn:hover {
+  border-color: var(--blue-300, #93c5fd);
+}
+
+/* タップ瞬間のフィードバック（押し込み感） */
+.stamp-btn:active {
+  transform: scale(0.95);
+}
+
+/* 選択中: 太枠 + 青グロー + 浮き上がり + ✓ バッジ */
 .stamp-btn.active {
   border-color: var(--blue-600);
-  background: var(--blue-50);
-  box-shadow: var(--shadow-sm);
+  border-width: 3px;
+  background: linear-gradient(180deg, #eaf2ff 0%, #d6e6ff 100%);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.22),
+    0 8px 18px rgba(29, 78, 216, 0.28);
+  transform: translateY(-3px);
+}
+
+.stamp-btn.active:active {
+  transform: translateY(-1px) scale(0.96);
+}
+
+.stamp-btn.active::after {
+  content: '✓';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.35);
+  line-height: 1;
+  z-index: 2;
 }
 
 .stamp-emoji {
@@ -287,10 +331,14 @@ body.has-baseball-bg .screen-title {
   height: 100%;
 }
 
+/* キャラの存在感を強める: 枠より少し大きく描き、わずかに上寄せして顔を強調 */
 .stamp-emoji img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: 108%;
+  height: 108%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center 18%;
+  transform: translateY(-2%);
 }
 
 /* ================ Role & goal buttons ================ */
