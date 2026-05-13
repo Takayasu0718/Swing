@@ -1084,11 +1084,13 @@ body.has-baseball-bg .screen-title {
 }
 
 .dragon-avatar img {
-  width: 118%;
-  height: 118%;
+  /* +5% ズームで顔・表情をより見やすく。object-position はやや上寄せ
+     （%値が小さいほど上方向が温存され帽子の切れを防ぐ） */
+  width: 124%;
+  height: 124%;
   max-width: none;
   object-fit: cover;
-  object-position: center 10%;
+  object-position: center 6%;
   display: block;
 }
 
