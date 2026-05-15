@@ -35,6 +35,9 @@ async function fetchNickname(uid) {
   }
 }
 
+// 通知作成。fromUserId は呼出者から受け取らず必ず myUid を使う（なりすまし防止の
+// 二重防御。Firestore ルール側でも auth.uid == fromUserId をチェックしているが、
+// クライアント側でも同様に保証する）。
 export async function createFsNotification(data) {
   if (!db || !data?.userId || !data?.type) return null
   const myUid = await authReady
@@ -43,7 +46,7 @@ export async function createFsNotification(data) {
     const ref = await addDoc(collection(db, 'notifications'), {
       userId: data.userId,
       type: data.type,
-      fromUserId: data.fromUserId || myUid,
+      fromUserId: myUid,
       content: data.content || '',
       activityId: data.activityId ?? null,
       requestId: data.requestId ?? null,
@@ -73,7 +76,6 @@ export async function createLikeNotification({ recipientUid, likeTargetKey }) {
   return createFsNotification({
     userId: recipientUid,
     type: 'like',
-    fromUserId: myUid,
     content: `${nickname || '誰か'}さんがいいねをくれました`,
     likeTargetKey,
     fromUserNickname: nickname || '',
