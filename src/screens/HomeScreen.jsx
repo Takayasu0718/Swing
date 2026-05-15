@@ -202,18 +202,21 @@ export default function HomeScreen() {
       swingCount: user.dailyGoal,
       uid: auth?.currentUser?.uid,
     })
-    // パーティクル生成（イベントハンドラ内なので Math.random は OK）
-    const emojis = ['🔥', '✨', '⭐', '💥', '🌟', '⚾']
-    const particles = Array.from({ length: 22 }).map((_, i) => {
-      const angle = (Math.PI * 2 * i) / 22 + Math.random() * 0.5
-      const dist = 90 + Math.random() * 80
+    // 紙吹雪パーティクル生成（イベントハンドラ内なので Math.random は OK）。
+    // 配色はアプリの世界観に合わせて青系メインに金・ピンク・緑をアクセント。
+    const palette = ['#fbbf24', '#3b82f6', '#ec4899', '#10b981', '#f97316', '#a855f7']
+    const N = 28
+    const particles = Array.from({ length: N }).map((_, i) => {
+      const angle = (Math.PI * 2 * i) / N + Math.random() * 0.35
+      const dist = 110 + Math.random() * 100
       return {
         tx: Math.cos(angle) * dist,
-        ty: Math.sin(angle) * dist - 20,
-        emoji: emojis[i % emojis.length],
+        ty: Math.sin(angle) * dist - 30,
+        color: palette[i % palette.length],
         delay: Math.random() * 0.12,
-        size: 1.1 + Math.random() * 0.8,
         rot: Math.random() * 720 - 360,
+        w: 8 + Math.random() * 6,
+        h: 12 + Math.random() * 8,
       }
     })
     setBurst({ seed: Date.now(), particles })
@@ -451,22 +454,24 @@ export default function HomeScreen() {
           )}
           {burst.seed > 0 && (
             <div className="burst-overlay" aria-hidden>
+              <div className="burst-rays" />
               <div className="burst-flash" />
               {burst.particles.map((p, i) => (
                 <span
                   key={`${burst.seed}-${i}`}
-                  className="burst-particle"
+                  className="burst-confetti"
                   style={{
                     '--tx': `${p.tx}px`,
                     '--ty': `${p.ty}px`,
                     '--rot': `${p.rot}deg`,
-                    fontSize: `${p.size}rem`,
+                    background: p.color,
+                    width: `${p.w}px`,
+                    height: `${p.h}px`,
                     animationDelay: `${p.delay}s`,
                   }}
-                >
-                  {p.emoji}
-                </span>
+                />
               ))}
+              <div className="burst-banner">MISSION CLEAR!</div>
             </div>
           )}
         </section>
