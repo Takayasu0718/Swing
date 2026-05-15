@@ -169,8 +169,31 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.auth.uid in request.resource.data.participants
                     && request.resource.data.participants.size() == 2;
+      // update は2パターンのみ:
+      //   1. markRead: lastReadAt の自分の key だけを更新
+      //   2. sendDm: lastMessage/lastMessageAt/lastMessageSenderUid を自分名義で更新
+      //     （lastReadAt は自分の key のみ）
+      // participants は変更不可（第三者の混入を防止）
       allow update: if request.auth != null
-                    && request.auth.uid in resource.data.participants;
+                    && request.auth.uid in resource.data.participants
+                    && (
+                      (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['lastReadAt'])
+                        && request.resource.data.lastReadAt
+                            .diff(resource.data.lastReadAt).affectedKeys()
+                            .hasOnly([request.auth.uid])
+                      )
+                      || (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['lastMessage', 'lastMessageAt',
+                                    'lastMessageSenderUid', 'lastReadAt'])
+                        && request.resource.data.lastMessageSenderUid == request.auth.uid
+                        && request.resource.data.lastReadAt
+                            .diff(resource.data.lastReadAt).affectedKeys()
+                            .hasOnly([request.auth.uid])
+                      )
+                    );
       allow delete: if false;
 
       match /messages/{msgId} {
