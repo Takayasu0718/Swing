@@ -58,15 +58,43 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.captainId
                     && request.auth.uid in request.resource.data.memberIds;
-      // 通常 update はメンバー/キャプテンのみ。
-      // ただしフレンドチーム承認時は相手チームの friendTeamIds を更新する必要があるため
-      // friendTeamIds（+ updatedAt）のみの差分なら認証済みユーザーに許可。
-      allow update: if request.auth != null
-                    && (
-                      request.auth.uid in resource.data.memberIds
-                      || request.auth.uid == resource.data.captainId
-                      || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendTeamIds', 'updatedAt'])
-                    );
+      // 通常 update は権限とフィールドを厳格に制限。
+      // ケース A: キャプテン本人（広範な更新／キャプテン譲渡含む）
+      // ケース B: 非キャプテンのメンバー（一般情報のみ。captainId / memberIds / handle は不可）
+      // ケース C: メンバーが自身を memberIds から外す（脱退）。他人の追加・削除は不可
+      // ケース D: フレンドチーム承認/解消（friendTeamIds + updatedAt のみ）
+      //   相手チームのキャプテンが対象チームを更新するため認証済みユーザーに開く。
+      //   厳密には Cloud Functions で仲介すべきだがベータでは許容。
+      allow update: if request.auth != null && (
+        (
+          request.auth.uid == resource.data.captainId
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['name', 'description', 'captainId', 'prefecture', 'municipality',
+                        'nextMatch', 'matches', 'memberIds', 'friendTeamIds',
+                        'handle', 'handleLower', 'updatedAt'])
+        )
+        || (
+          request.auth.uid in resource.data.memberIds
+          && request.auth.uid != resource.data.captainId
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['name', 'description', 'prefecture', 'municipality',
+                        'nextMatch', 'matches', 'updatedAt'])
+        )
+        || (
+          request.auth.uid in resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['memberIds', 'updatedAt'])
+          && resource.data.memberIds.toSet()
+              .difference(request.resource.data.memberIds.toSet())
+              .hasOnly([request.auth.uid])
+          && request.resource.data.memberIds.toSet()
+              .difference(resource.data.memberIds.toSet()).size() == 0
+        )
+        || (
+          request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['friendTeamIds', 'updatedAt'])
+        )
+      );
       allow delete: if request.auth != null
                     && request.auth.uid == resource.data.captainId;
 
