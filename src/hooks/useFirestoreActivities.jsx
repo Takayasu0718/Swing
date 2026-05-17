@@ -3,6 +3,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { subscribeActivitiesByUids } from '../lib/firestoreActivities.js'
 import { useFirestoreFriends } from './useFirestoreFriends.jsx'
 import { useFirestoreTeams } from './useFirestoreTeams.jsx'
+import { isDemoMode } from '../lib/demoMode.js'
+import { buildDemoTeamActivities } from '../storage/demoMockData.js'
 
 const Ctx = createContext({ activities: [] })
 
@@ -20,7 +22,12 @@ export function FirestoreActivitiesProvider({ children }) {
   const watchedKey = watchedUids.sort().join(',')
 
   useEffect(() => {
-    if (!myUid) return
+    if (!myUid) return undefined
+    if (isDemoMode()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setByUidActs(buildDemoTeamActivities())
+      return undefined
+    }
     const unsub = subscribeActivitiesByUids(watchedUids, setByUidActs)
     return () => unsub()
     // eslint-disable-next-line react-hooks/exhaustive-deps

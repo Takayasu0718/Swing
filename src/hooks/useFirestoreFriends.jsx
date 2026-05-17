@@ -6,6 +6,12 @@ import {
   fetchUserProfile,
   searchAllUsers,
 } from '../lib/firestoreFriends.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import {
+  DEMO_USERS,
+  buildDemoUsersByUid,
+  buildDemoFriendships,
+} from '../storage/demoMockData.js'
 
 const Ctx = createContext({
   myUid: null,
@@ -28,6 +34,14 @@ export function FirestoreFriendsProvider({ children }) {
     authReady.then(async (uid) => {
       if (cancelled || !uid) return
       setMyUid(uid)
+
+      // デモモード: Firestore 購読をスキップしモックを返す
+      if (isDemoMode()) {
+        setAllUsers(DEMO_USERS)
+        setUsersByUid(buildDemoUsersByUid())
+        setFriendships(buildDemoFriendships(uid))
+        return
+      }
 
       // Initial bulk load of users for searching.
       const users = await searchAllUsers()

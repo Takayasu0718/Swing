@@ -2,6 +2,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { authReady } from '../lib/firebase.js'
 import { subscribeMyFsNotifications } from '../lib/firestoreNotifications.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import { buildDemoNotifications } from '../storage/demoMockData.js'
 
 const Ctx = createContext({ items: [], unread: 0, myUid: null })
 
@@ -15,6 +17,11 @@ export function FirestoreNotificationsProvider({ children }) {
     authReady.then((uid) => {
       if (cancelled || !uid) return
       setMyUid(uid)
+      // デモモード: モック通知を返し Firestore 購読をスキップ
+      if (isDemoMode()) {
+        setItems(buildDemoNotifications(uid))
+        return
+      }
       unsub = subscribeMyFsNotifications(uid, (it) => {
         if (cancelled) return
         setItems(it)

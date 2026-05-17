@@ -46,6 +46,12 @@ import {
 } from '../lib/firestoreTrialRequests.js'
 import { loadFriendRanking, loadTeamAchievementStats } from '../lib/firestoreRanking.js'
 import { todayKey } from '../lib/date.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import {
+  buildDemoTeamChat,
+  buildDemoTeamRanking,
+  DEMO_TEAM_STATS,
+} from '../storage/demoMockData.js'
 
 const CHAT_INITIAL = 5
 const CHAT_STEP = 10
@@ -151,6 +157,15 @@ export default function TeamScreen() {
       setChatReachedEnd(true)
       return
     }
+    if (isDemoMode() && myUid) {
+      // デモモード: モックチャットを注入
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChatItems(buildDemoTeamChat(myUid))
+      setChatLastDoc(null)
+      setChatReachedEnd(true)
+      setChatLoading(false)
+      return
+    }
     let cancelled = false
     setChatLoading(true)
     fetchRecentChats(teamId, CHAT_INITIAL).then(({ items, lastDoc }) => {
@@ -165,7 +180,7 @@ export default function TeamScreen() {
     return () => {
       cancelled = true
     }
-  }, [myFsTeam?.id])
+  }, [myFsTeam?.id, myUid])
 
   // FS チームの達成率（本日 / 直近7日）
   const [fsTeamStats, setFsTeamStats] = useState({ todayRate: 0, weekRate: 0 })
@@ -174,6 +189,12 @@ export default function TeamScreen() {
   const fsRankingMemberKey = (myFsTeam?.memberIds || []).join(',')
   useEffect(() => {
     if (!myFsTeam?.id) return
+    if (isDemoMode() && myUid) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFsTeamRanking(buildDemoTeamRanking(myUid, me))
+      setFsTeamStats(DEMO_TEAM_STATS)
+      return
+    }
     const memberUids = (myFsTeam.memberIds || []).filter((uid) => {
       const u = (allUsers || []).find((x) => x.uid === uid)
       // 体験ロールは分母から除外。allUsers にまだ載っていない場合は仮に含める。

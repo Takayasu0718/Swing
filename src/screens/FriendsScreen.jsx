@@ -16,6 +16,8 @@ import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { toggleFsActivityLike, fetchRecentActivitiesByUids } from '../lib/firestoreActivities.js'
 import { loadFriendRanking } from '../lib/firestoreRanking.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import { buildDemoTeamRanking } from '../storage/demoMockData.js'
 
 const FEED_INITIAL = 15
 const FEED_STEP = 15
@@ -45,6 +47,12 @@ export default function FriendsScreen() {
   const [ranking, setRanking] = useState([])
   useEffect(() => {
     if (!myUid) return undefined
+    if (isDemoMode()) {
+      const me = users.getCurrent()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRanking(buildDemoTeamRanking(myUid, me))
+      return undefined
+    }
     const uids = [myUid, ...feedFriendUids]
     const me = users.getCurrent()
     const profiles = {}

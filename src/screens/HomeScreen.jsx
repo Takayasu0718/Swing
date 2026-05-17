@@ -10,6 +10,8 @@ import { auth } from '../lib/firebase.js'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { loadFriendRanking } from '../lib/firestoreRanking.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import { buildDemoAllUsersRanking } from '../storage/demoMockData.js'
 import EmptyState from '../components/EmptyState.jsx'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -86,7 +88,13 @@ export default function HomeScreen() {
   const allUidsKey = allUserUids.sort().join(',')
 
   useEffect(() => {
-    if (!myUid || allUserUids.length === 0) return
+    if (!myUid) return undefined
+    if (isDemoMode()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRanking(buildDemoAllUsersRanking(myUid, user))
+      return undefined
+    }
+    if (allUserUids.length === 0) return undefined
     let cancelled = false
     const profiles = {}
     for (const u of allUsers) profiles[u.uid] = { nickname: u.nickname, avatarStamp: u.avatarStamp }

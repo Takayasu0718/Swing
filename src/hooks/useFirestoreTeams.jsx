@@ -3,6 +3,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { authReady } from '../lib/firebase.js'
 import { listAllFsTeams, subscribeMyFsTeams } from '../lib/firestoreTeams.js'
 import { subscribeMyOutgoingTeamRequests } from '../lib/firestoreTeamRequests.js'
+import { isDemoMode } from '../lib/demoMode.js'
+import { buildDemoTeam } from '../storage/demoMockData.js'
 
 const Ctx = createContext({
   myUid: null,
@@ -26,6 +28,15 @@ export function FirestoreTeamsProvider({ children }) {
     authReady.then(async (uid) => {
       if (cancelled || !uid) return
       setMyUid(uid)
+
+      // デモモード: Firestore 購読をスキップしモックチームを 1 件返す
+      if (isDemoMode()) {
+        const demoTeam = buildDemoTeam(uid)
+        setMyFsTeams([demoTeam])
+        setAllFsTeams([demoTeam])
+        setOutgoingRequests([])
+        return
+      }
 
       const teams = await listAllFsTeams()
       if (!cancelled) setAllFsTeams(teams)
