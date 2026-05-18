@@ -57,6 +57,38 @@ export function isDebugMode() {
   return getRaw() !== null
 }
 
+// 設定画面のフォームから呼び出す保存/取得/クリア。
+export function setDebug(config) {
+  if (typeof window === 'undefined') return
+  try {
+    const cleaned = {}
+    for (const [k, v] of Object.entries(config || {})) {
+      if (v === null || v === undefined || v === '') continue
+      cleaned[k] = String(v)
+    }
+    if (Object.keys(cleaned).length === 0) {
+      localStorage.removeItem(KEY)
+    } else {
+      localStorage.setItem(KEY, JSON.stringify(cleaned))
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function clearDebug() {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(KEY)
+  } catch {
+    // ignore
+  }
+}
+
+export function getCurrentDebug() {
+  return getRaw()
+}
+
 // HomeScreen から呼び出す。各引数は通常時の計算結果。debug が無ければそのまま返す。
 export function applyDebugOverrides(values) {
   const d = getRaw()

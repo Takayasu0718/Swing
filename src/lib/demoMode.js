@@ -34,3 +34,14 @@ export function isDemoMode() {
     return false
   }
 }
+
+// 設定画面のトグルから呼び出す。
+export function setDemoMode(on) {
+  if (typeof window === 'undefined') return
+  try {
+    if (on) localStorage.setItem(KEY, '1')
+    else localStorage.removeItem(KEY)
+  } catch {
+    // ignore
+  }
+}

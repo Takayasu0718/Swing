@@ -12,6 +12,8 @@ import {
 } from '../lib/firestoreReset.js'
 import { auth, signOutUser } from '../lib/firebase.js'
 import { wipeAllLocalData } from '../storage/storage.js'
+import { setDemoMode, isDemoMode } from '../lib/demoMode.js'
+import { setDebug, clearDebug, getCurrentDebug } from '../lib/debugMode.js'
 import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { useFirestoreFriends } from '../hooks/useFirestoreFriends.jsx'
 import { useDm } from '../hooks/useDm.jsx'
@@ -374,6 +376,123 @@ export default function GuardianScreen({ onNavigate, onOpenLegal }) {
           お問い合わせはこちら
         </a>
       </section>
+
+      <DebugPanel />
     </div>
+  )
+}
+
+// SNS 撮影/開発用のデバッグパネル。デモモード切替 + HomeScreen の数値上書き。
+// 適用後は localStorage に保存され、リロードして反映する。
+function DebugPanel() {
+  const cur = getCurrentDebug() || {}
+  const [demo, setDemo] = useState(() => isDemoMode())
+  const [lv, setLv] = useState(cur.lv ?? '')
+  const [streak, setStreak] = useState(cur.streak ?? '')
+  const [days, setDays] = useState(cur.days ?? '')
+  const [longest, setLongest] = useState(cur.longest ?? '')
+  const [next, setNext] = useState(cur.next ?? '')
+  const [todaySwing, setTodaySwing] = useState(cur.todayswing ?? '')
+  const [totalSwing, setTotalSwing] = useState(cur.totalswing ?? '')
+  const [claim, setClaim] = useState(cur.claim === '1')
+  const [approve, setApprove] = useState(cur.approve === '1')
+  const bsParts = (cur.bs || '').split(',')
+  const [bsSpeed, setBsSpeed] = useState(bsParts[0] ?? '')
+  const [bsLower, setBsLower] = useState(bsParts[1] ?? '')
+  const [bsCourse, setBsCourse] = useState(bsParts[2] ?? '')
+  const [bsMeet, setBsMeet] = useState(bsParts[3] ?? '')
+  const [bsCustom, setBsCustom] = useState(bsParts[4] ?? '')
+
+  const apply = () => {
+    setDemoMode(demo)
+    const bs = [bsSpeed, bsLower, bsCourse, bsMeet, bsCustom]
+      .map((v) => (v === '' ? '' : String(v)))
+      .join(',')
+    setDebug({
+      lv, streak, days, longest, next,
+      todayswing: todaySwing,
+      totalswing: totalSwing,
+      claim: claim ? '1' : '',
+      approve: approve ? '1' : '',
+      bs: bs === ',,,,' ? '' : bs,
+    })
+    window.location.reload()
+  }
+
+  const clearAll = () => {
+    setDemoMode(false)
+    clearDebug()
+    window.location.reload()
+  }
+
+  return (
+    <section className="info-card">
+      <details>
+        <summary className="card-title" style={{ cursor: 'pointer' }}>
+          デバッグ・デモ（撮影用）
+        </summary>
+        <div className="empty-txt" style={{ marginTop: '0.4rem' }}>
+          数値を入力して「適用してリロード」で画面の表示値だけを上書きします。
+          サーバーには書き込みません。空欄は本物データを使用。
+        </div>
+
+        <label className="legal-consent-row" style={{ marginTop: '0.6rem' }}>
+          <input
+            type="checkbox"
+            checked={demo}
+            onChange={(e) => setDemo(e.target.checked)}
+          />
+          <span className="legal-consent-text">
+            デモモード（友達10人 / 通知 / ランキング 等を populated）
+          </span>
+        </label>
+
+        <DebugRow label="レベル" value={lv} onChange={setLv} placeholder="例: 12" />
+        <DebugRow label="連続達成日数" value={streak} onChange={setStreak} placeholder="例: 15" />
+        <DebugRow label="累計達成日数" value={days} onChange={setDays} placeholder="例: 85" />
+        <DebugRow label="最長連続" value={longest} onChange={setLongest} placeholder="例: 18" />
+        <DebugRow label="次レベルまで残り日数" value={next} onChange={setNext} placeholder="0〜3" />
+        <DebugRow label="今日の素振り回数" value={todaySwing} onChange={setTodaySwing} placeholder="例: 120" />
+        <DebugRow label="累計素振り回数" value={totalSwing} onChange={setTotalSwing} placeholder="例: 2400" />
+
+        <label className="legal-consent-row">
+          <input type="checkbox" checked={claim} onChange={(e) => setClaim(e.target.checked)} />
+          <span className="legal-consent-text">デイリーミッション 達成済</span>
+        </label>
+        <label className="legal-consent-row">
+          <input type="checkbox" checked={approve} onChange={(e) => setApprove(e.target.checked)} />
+          <span className="legal-consent-text">保護者承認 済</span>
+        </label>
+
+        <div className="empty-txt" style={{ marginTop: '0.6rem', fontWeight: 700 }}>
+          バッティングステータス
+        </div>
+        <DebugRow label="スピード" value={bsSpeed} onChange={setBsSpeed} placeholder="0〜100" />
+        <DebugRow label="下半身" value={bsLower} onChange={setBsLower} placeholder="0〜100" />
+        <DebugRow label="コース" value={bsCourse} onChange={setBsCourse} placeholder="0〜100" />
+        <DebugRow label="ミート" value={bsMeet} onChange={setBsMeet} placeholder="0〜100" />
+        <DebugRow label="カスタム" value={bsCustom} onChange={setBsCustom} placeholder="0〜100" />
+
+        <div className="btn-row" style={{ marginTop: '0.8rem' }}>
+          <button className="submit" onClick={apply}>適用してリロード</button>
+          <button className="outline-btn" onClick={clearAll}>クリアしてリロード</button>
+        </div>
+      </details>
+    </section>
+  )
+}
+
+function DebugRow({ label, value, onChange, placeholder }) {
+  return (
+    <label className="field" style={{ marginTop: '0.4rem' }}>
+      <span className="field-label">{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </label>
   )
 }
