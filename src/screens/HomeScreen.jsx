@@ -327,40 +327,6 @@ export default function HomeScreen() {
 
       {isPlayer && (
         <section className="streak-card">
-          <span className="streak-wreath streak-wreath-l" aria-hidden>
-            <svg viewBox="0 0 80 140" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 66 14 Q 14 70 66 126" stroke="#c7d5ec" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.9" />
-              <ellipse cx="58" cy="20" rx="10" ry="3" fill="#b8c9e6" transform="rotate(-50 58 20)" opacity="0.9" />
-              <ellipse cx="50" cy="16" rx="8" ry="2.6" fill="#a6bbdc" transform="rotate(-75 50 16)" opacity="0.85" />
-              <ellipse cx="45" cy="36" rx="12" ry="3.4" fill="#b8c9e6" transform="rotate(-30 45 36)" opacity="0.9" />
-              <ellipse cx="36" cy="34" rx="10" ry="2.8" fill="#a6bbdc" transform="rotate(-55 36 34)" opacity="0.85" />
-              <ellipse cx="30" cy="58" rx="13" ry="3.6" fill="#b8c9e6" transform="rotate(-8 30 58)" opacity="0.9" />
-              <ellipse cx="22" cy="60" rx="11" ry="3" fill="#a6bbdc" transform="rotate(-32 22 60)" opacity="0.85" />
-              <ellipse cx="30" cy="82" rx="13" ry="3.6" fill="#b8c9e6" transform="rotate(12 30 82)" opacity="0.9" />
-              <ellipse cx="22" cy="80" rx="11" ry="3" fill="#a6bbdc" transform="rotate(36 22 80)" opacity="0.85" />
-              <ellipse cx="45" cy="104" rx="12" ry="3.4" fill="#b8c9e6" transform="rotate(32 45 104)" opacity="0.9" />
-              <ellipse cx="36" cy="106" rx="10" ry="2.8" fill="#a6bbdc" transform="rotate(58 36 106)" opacity="0.85" />
-              <ellipse cx="58" cy="120" rx="10" ry="3" fill="#b8c9e6" transform="rotate(54 58 120)" opacity="0.9" />
-              <ellipse cx="50" cy="124" rx="8" ry="2.6" fill="#a6bbdc" transform="rotate(78 50 124)" opacity="0.85" />
-            </svg>
-          </span>
-          <span className="streak-wreath streak-wreath-r" aria-hidden>
-            <svg viewBox="0 0 80 140" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 66 14 Q 14 70 66 126" stroke="#c7d5ec" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.9" />
-              <ellipse cx="58" cy="20" rx="10" ry="3" fill="#b8c9e6" transform="rotate(-50 58 20)" opacity="0.9" />
-              <ellipse cx="50" cy="16" rx="8" ry="2.6" fill="#a6bbdc" transform="rotate(-75 50 16)" opacity="0.85" />
-              <ellipse cx="45" cy="36" rx="12" ry="3.4" fill="#b8c9e6" transform="rotate(-30 45 36)" opacity="0.9" />
-              <ellipse cx="36" cy="34" rx="10" ry="2.8" fill="#a6bbdc" transform="rotate(-55 36 34)" opacity="0.85" />
-              <ellipse cx="30" cy="58" rx="13" ry="3.6" fill="#b8c9e6" transform="rotate(-8 30 58)" opacity="0.9" />
-              <ellipse cx="22" cy="60" rx="11" ry="3" fill="#a6bbdc" transform="rotate(-32 22 60)" opacity="0.85" />
-              <ellipse cx="30" cy="82" rx="13" ry="3.6" fill="#b8c9e6" transform="rotate(12 30 82)" opacity="0.9" />
-              <ellipse cx="22" cy="80" rx="11" ry="3" fill="#a6bbdc" transform="rotate(36 22 80)" opacity="0.85" />
-              <ellipse cx="45" cy="104" rx="12" ry="3.4" fill="#b8c9e6" transform="rotate(32 45 104)" opacity="0.9" />
-              <ellipse cx="36" cy="106" rx="10" ry="2.8" fill="#a6bbdc" transform="rotate(58 36 106)" opacity="0.85" />
-              <ellipse cx="58" cy="120" rx="10" ry="3" fill="#b8c9e6" transform="rotate(54 58 120)" opacity="0.9" />
-              <ellipse cx="50" cy="124" rx="8" ry="2.6" fill="#a6bbdc" transform="rotate(78 50 124)" opacity="0.85" />
-            </svg>
-          </span>
           <span className="streak-sparkle streak-sparkle-1" aria-hidden>
             <svg viewBox="-10 -10 20 20" xmlns="http://www.w3.org/2000/svg">
               <path d="M 0 -9 L 2 -2 L 9 0 L 2 2 L 0 9 L -2 2 L -9 0 L -2 -2 Z" fill="#fde047" />
