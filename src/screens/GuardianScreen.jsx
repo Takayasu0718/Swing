@@ -408,12 +408,14 @@ function DebugPanel() {
     const bs = [bsSpeed, bsLower, bsCourse, bsMeet, bsCustom]
       .map((v) => (v === '' ? '' : String(v)))
       .join(',')
+    // claim/approve は未チェック時も明示的に '0' を保存し「未押下状態」として上書き。
+    // 本物の値に戻したいときは「クリアしてリロード」を使う。
     setDebug({
       lv, streak, days, longest, next,
       todayswing: todaySwing,
       totalswing: totalSwing,
-      claim: claim ? '1' : '',
-      approve: approve ? '1' : '',
+      claim: claim ? '1' : '0',
+      approve: approve ? '1' : '0',
       bs: bs === ',,,,' ? '' : bs,
     })
     window.location.reload()
