@@ -377,7 +377,7 @@ export default function GuardianScreen({ onNavigate, onOpenLegal }) {
         </a>
       </section>
 
-      <DebugPanel />
+      {isDemoMode() && <DebugPanel />}
     </div>
   )
 }
