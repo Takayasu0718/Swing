@@ -5,9 +5,11 @@ import { ROLES } from './storage/schema.js'
 import { seedIfNeeded, ensureDemoTeams } from './storage/seed.js'
 import { auth, subscribeAuthState } from './lib/firebase.js'
 import { syncDemoFromUrl } from './lib/demoMode.js'
+import { syncDebugFromUrl } from './lib/debugMode.js'
 
-// アプリ起動時に ?demo=1 / ?demo=0 を localStorage フラグに同期
+// アプリ起動時に URL フラグを localStorage に同期
 syncDemoFromUrl()
+syncDebugFromUrl()
 import { syncUserProfile, fetchMyUserProfile } from './lib/firestoreSync.js'
 import { subscribeMyConversations } from './lib/firestoreDms.js'
 import { loadSwingActivities } from './lib/firestoreLoad.js'

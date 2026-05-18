@@ -12,6 +12,7 @@ import { useFirestoreTeams } from '../hooks/useFirestoreTeams.jsx'
 import { loadFriendRanking } from '../lib/firestoreRanking.js'
 import { isDemoMode } from '../lib/demoMode.js'
 import { buildDemoAllUsersRanking } from '../storage/demoMockData.js'
+import { applyDebugOverrides } from '../lib/debugMode.js'
 import EmptyState from '../components/EmptyState.jsx'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -127,22 +128,35 @@ export default function HomeScreen() {
   const today = todayKey()
 
   const myMissions = missions.listByUser(user.id)
-  const streak = computeStreak(myMissions)
-  const achievementDays = countAchievementDays(myMissions)
-  const longestStreak = computeLongestStreak(myMissions)
-  const level = levelFromProgress(achievementDays, longestStreak)
-  const daysToNext = daysUntilNextLevel(achievementDays, longestStreak)
-
   const completedMissions = myMissions.filter((m) => m.completed)
-  const todaySwingCount = completedMissions.find((m) => m.date === todayKey())?.goal ?? 0
-  const totalSwingCount = completedMissions.reduce((sum, m) => sum + (m.goal ?? 0), 0)
-
   const weeklyData = computeWeeklyData(completedMissions)
   const weeklyMax = Math.max(...weeklyData.map((d) => d.count), 0)
   const weeklyHasData = weeklyMax > 0
+  const todayMissionReal = isPlayer ? missions.get(user.id, today) : null
 
-  // バッティングステータスの値（旧アカウントには存在しないので空オブジェクトでフォールバック）
-  const battingStatus = user.battingStatus || {}
+  // ?debug=1&... による表示値上書き（HomeScreen の数値・ボタン状態のみ）
+  const dbg = applyDebugOverrides({
+    streak: computeStreak(myMissions),
+    achievementDays: countAchievementDays(myMissions),
+    longestStreak: computeLongestStreak(myMissions),
+    level: levelFromProgress(
+      countAchievementDays(myMissions),
+      computeLongestStreak(myMissions),
+    ),
+    daysToNext: daysUntilNextLevel(
+      countAchievementDays(myMissions),
+      computeLongestStreak(myMissions),
+    ),
+    todaySwingCount: completedMissions.find((m) => m.date === todayKey())?.goal ?? 0,
+    totalSwingCount: completedMissions.reduce((sum, m) => sum + (m.goal ?? 0), 0),
+    battingStatus: user.battingStatus || {},
+    childClaimed: !!todayMissionReal?.childClaimed,
+    completed: !!todayMissionReal?.completed,
+  })
+  const {
+    streak, achievementDays, longestStreak, level, daysToNext,
+    todaySwingCount, totalSwingCount, battingStatus,
+  } = dbg
   const customLabel = user.customStatusLabel || ''
 
   const toggleStatusKey = (k) => {
@@ -199,9 +213,9 @@ export default function HomeScreen() {
     return true
   })
 
-  const todayMission = isPlayer ? missions.get(user.id, today) : null
-  const childClaimed = !!todayMission?.childClaimed
-  const completed = !!todayMission?.completed
+  const todayMission = todayMissionReal
+  const childClaimed = dbg.childClaimed
+  const completed = dbg.completed
 
   const claimMission = () => {
     if (selectedStatusKeys.size < 1 || selectedStatusKeys.size > 2) return
